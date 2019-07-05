@@ -172,12 +172,14 @@
 在一个token流中查找结构的过程 或者说在一个toaken流程中识别短语的过程叫做 解析（parsing). 解释器和编译器执行这个过程的程序叫做 解析器(parser)；   
 所以该程序中的expr是解析和解释发生的地方。expr 函数会先在token的流中一个个识别 ）INTEGER -> PLUS -> INTEGER 或 the INTEGER -> MINUS -> INTEGER 其中的一个，然后识别他们是 加法 还是减法 后返回相应的值。
 ## 什么是 lexeme?
-词素是组成符号的字符序列,lexeme 就是一个token的实例，例如一个lexeme可能包含如下信息：  
-Token | sample lexemes
--|-|
-INTEGER | 1, 34 ,5 ,6 
-PLUS | +
-MINUS | -
+词素是组成符号的字符序列,lexeme 就是一个token的实例,例如一个lexeme可能包含如下信息：  
+
+
+| Token | sample lexemes | 
+|-----|-------|
+| INTEGER | 1, 34 ,5 ,6 |
+| PLUS | + |
+| MINUS | - |
 
 
 原文地址: https://ruslanspivak.com/lsbasi-part2/
