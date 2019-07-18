@@ -7,10 +7,10 @@
 ## 什么是解释器 （interpreter）？
 如果翻译器直接执行源程序代码没有转成机器语言，那它就是解释器。
 ## 什么是词法分析 （lexical analysis)？
-将字符集分解成一个个token 这个过程就是 词法分析
+将字符流组织成为有意义的词素(lexeme)的序列;执行这个任务的就是 词法分析程序（lexical analyzer）
 ## 什么是token?
 百科：词法分析是计算机科学中将字符序列转换为标记（token）序列的过程。  
-在本章的计算机解释器的代码中，把用户输入的字符逐个解析为一个个token.例如输入“3+5”，第一个字符就是 3，它将生成一个token, token是一个简单的对象有两个属性一个是 type 它的值是 'INTEGER'。另一个属性是value 它的值是 ‘3’.
+在本章的计算机解释器的代码中，把通过词法分析器(lexical analyzer)字符逐个解析为一个个token.例如输入“3+5”，第一个字符就是 3，它将生成一个token, token是一个简单的对象有两个属性一个是 type 它的值是 'INTEGER'。另一个属性是value 它的值是 ‘3’.
 
     
     const INTEGER = "INTEGER";
