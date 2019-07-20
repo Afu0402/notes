@@ -96,7 +96,7 @@ factor: INTEGER
     }
 
     class Lexer {
-      constructor () {
+      constructor (text) {
         this.text = text;
         this.pos = 0;
         this.current_char = this.text[this.pos];
@@ -176,7 +176,7 @@ factor: INTEGER
     class Interpreter {
       constructor(Lexer) {
         this.Lexer =  Lexer
-        this.current_token = null;
+        this.current_token = this.Lexer.get_next_token();
 
       }
 

@@ -2,6 +2,8 @@ const INTEGER = "INTEGER";
 const PLUS = "PLUS";
 const EOF = "EOF"; //表示没有更多的字符需要解析
 const MINUS = "MINUS";
+const MUL = "MUL";
+const DIV = "DIV";
 
 //判断一个字符串是否可以被转为整数;
 function isDigit(str) {
@@ -29,7 +31,7 @@ class Token {
 
 // lexical analysis
 class Lexer {
-  constructor (text) {
+  constructor(text) {
     this.text = text;
     this.pos = 0;
     this.current_char = this.text[this.pos];
@@ -82,6 +84,16 @@ class Lexer {
         return new Token(MINUS, "-");
       }
 
+      if (this.current_char === "*") {
+        this.advance();
+        return new Token(MUL, "*");
+      }
+
+      if (this.current_char === "/") {
+        this.advance();
+        return new Token(DIV, "/");
+      }
+
       this.error();
     }
     return new Token(EOF, null);
@@ -96,7 +108,6 @@ class Lexer {
     }
     return Number(result);
   }
-  
 }
 
 /**
@@ -107,10 +118,9 @@ class Lexer {
  */
 
 class Interpreter {
-  constructor(Lexer) {
-    this.Lexer =  Lexer
-    this.current_token = this.Lexer.get_next_token();
-
+  constructor(lexer) {
+    this.lexer = lexer;
+    this.current_token = this.lexer.get_next_token();
   }
 
   error() {
@@ -119,34 +129,55 @@ class Interpreter {
 
   eat(token_type) {
     if (this.current_token.type === token_type) {
-      this.current_token = this.Lexer.get_next_token();
+      this.current_token = this.lexer.get_next_token();
     } else {
       this.error();
     }
   }
 
   factor() {
+
+    // factor: INTEGER；
     // returan an INTEGER token value
     const token = this.current_token;
     this.eat(INTEGER);
     return token.value;
   }
 
-  expr() {
-    //Syntax analysis
-    //Arithmetic expression parser 
+  term() {
+    // TERM: factor((MUL|DIV)factor)*
     let result = this.factor();
-
-    while([MINUS,PLUS].includes(this.current_token.type)) {
+    while ([MUL, DIV].includes(this.current_token.type)) {
       let token = this.current_token;
-      if(token.type === MINUS) {
-        this.eat(MINUS);
-        result = result - this.factor();
+      if (token.type === MUL) {
+        this.eat(MUL);
+        result = result * this.factor();
       }
 
-      if(token.type === PLUS) {
+      if (token.type === DIV) {
+        this.eat(DIV);
+        result = result / this.factor();
+      }
+    }
+    return result;
+  }
+
+  expr() {
+    // expr: term((PLUS|MIUNS)term)*
+    //Syntax analysis
+    //Arithmetic expression parser
+    let result = this.term()
+
+    while ([MINUS, PLUS].includes(this.current_token.type)) {
+      let token = this.current_token;
+      if (token.type === MINUS) {
+        this.eat(MINUS);
+        result = result - this.term();
+      }
+
+      if (token.type === PLUS) {
         this.eat(PLUS);
-        result = result + this.factor();
+        result = result + this.term();
       }
     }
 
@@ -154,11 +185,10 @@ class Interpreter {
   }
 }
 
-
-function main () {
-  const text =  process.argv.splice(2).join('');
+const main  = () => {
+  const text = process.argv.splice(2).join("");
   const lexer = new Lexer(text);
   let interpreter = new Interpreter(lexer);
-console.log(interpreter.expr()); 
+  console.log(interpreter.expr());
 }
 main();
