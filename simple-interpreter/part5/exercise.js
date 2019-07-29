@@ -29,18 +29,11 @@ class Token {
   }
 }
 
-/**
- * Interpreter
- * 只支持输入要给简单的单数加法表达式例如：‘3+5’ 并不允许有空格；
- * 该程序期望去根据输入的字符解析出来的token寻找出:INTEGER -> PLUS -> INTEGER.的结构；
- *
- */
-
-class Interpreter {
+// lexical analysis
+class Lexer {
   constructor(text) {
     this.text = text;
     this.pos = 0;
-    this.current_token = null;
     this.current_char = this.text[this.pos];
   }
 
@@ -60,20 +53,9 @@ class Interpreter {
 
   skip_whitespace() {
     //跳过空白符把指针+1 更新current_char的值；
-
     while (this.current_char !== null && isspace(this.current_char)) {
       this.advance();
     }
-  }
-
-  integer() {
-    // 循环查找字符知道碰到一个不是整数字符位置。合并查找到的字符并返回一个数字整数；
-    let result = "";
-    while (this.current_char !== null && isDigit(this.current_char)) {
-      result += this.current_char;
-      this.advance();
-    }
-    return Number(result);
   }
 
   get_next_token() {
@@ -117,62 +99,96 @@ class Interpreter {
     return new Token(EOF, null);
   }
 
+  integer() {
+    // 循环查找字符知道碰到一个不是整数字符位置。合并查找到的字符并返回一个整数数字；
+    let result = "";
+    while (this.current_char !== null && isDigit(this.current_char)) {
+      result += this.current_char;
+      this.advance();
+    }
+    return Number(result);
+  }
+}
+
+/**
+ * Interpreter
+ * 只支持输入要给简单的单数加法表达式例如：‘3+5’ 并不允许有空格；
+ * 该程序期望去根据输入的字符解析出来的token寻找出:INTEGER -> PLUS -> INTEGER.的结构；
+ *
+ */
+
+class Interpreter {
+  constructor(lexer) {
+    this.lexer = lexer;
+    this.current_token = this.lexer.get_next_token();
+  }
+
+  error() {
+    throw "SyntaxError: invalid syntax";
+  }
+
   eat(token_type) {
-    // 验证当前的 token类型是否是解析器期望的token类型；
     if (this.current_token.type === token_type) {
-      this.current_token = this.get_next_token();
+      this.current_token = this.lexer.get_next_token();
     } else {
       this.error();
     }
   }
 
-  term() {
-    let token = this.current_token;
+  factor() {
+
+    // factor: INTEGER；
+    // returan an INTEGER token value
+    const token = this.current_token;
     this.eat(INTEGER);
     return token.value;
   }
 
-  expr() {
-    /**
-     * 期望找到如下结构：
-     *  INTEGER -> PLUS -> INTEGER
-     *  INTEGER -> MINUS -> INTEGER
-     *  INTEGER -> DIV -> INTEGER
-     *  INTEGER -> MUL -> INTEGER
-     */
-    this.current_token = this.get_next_token();
-
-    let result = this.term();
-    while([DIV,MUL,MINUS,PLUS].includes(this.current_token.type)) {
+  term() {
+    // TERM: factor((MUL|DIV)factor)*
+    let result = this.factor();
+    while ([MUL, DIV].includes(this.current_token.type)) {
       let token = this.current_token;
+      if (token.type === MUL) {
+        this.eat(MUL);
+        result = result * this.factor();
+      }
+
+      if (token.type === DIV) {
+        this.eat(DIV);
+        result = result / this.factor();
+      }
+    }
+    return result;
+  }
+
+  expr() {
+    // expr: term((PLUS|MIUNS)term)*
+    //Syntax analysis
+    //Arithmetic expression parser
+    let result = this.term()
+
+    while ([MINUS, PLUS].includes(this.current_token.type)) {
+      let token = this.current_token;
+      if (token.type === MINUS) {
+        this.eat(MINUS);
+        result = result - this.term();
+      }
+
       if (token.type === PLUS) {
         this.eat(PLUS);
         result = result + this.term();
-      } else if (token.type === MUL) {
-        this.eat(MUL);
-        result = result * this.term();
-
-      } else if (token.type === DIV) {
-        this.eat(DIV);
-        result = result / this.term();
-      } else if (token.type === MINUS){
-        this.eat(MINUS);
-        result = result - this.term();
-      } else {
-        this.error();
       }
     }
 
     return result;
-   
   }
 }
 
-
-function main () {
-  const text =  process.argv.splice(2).join('');
-  
-let interpreter = new Interpreter(text);
-console.log(interpreter.expr()); 
+const main  = () => {
+  const text = process.argv.splice(2).join("");
+  const lexer = new Lexer(text);
+  let interpreter = new Interpreter(lexer);
+  console.log(interpreter.expr());
 }
 main();

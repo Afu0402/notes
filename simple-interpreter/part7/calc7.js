@@ -228,36 +228,42 @@ class Parser {
     return this.expr();
   }
 }
+class NodeVisitor {
+  visit(node) {
+    const method_name = `visit_${node.constructor.name}`;
+    return this[method_name](node)
+  }
+}
 
-function evaluate(tree) {
-  if(tree.left && tree.left.type === INTEGER) {
-    if(tree.op.type === PLUS) {
-      tree.left + evaluate(tree.right);
-    }
-
-    if(tree.op.type === MUL) {
-      tree.left * evaluate(tree.right);
-    }
+class Interpreter extends NodeVisitor {
+  constructor(parser){
+    super()
+    this.parser = parser;
   }
 
-  if(tree.right && tree.right.type === INTEGER) {
-    if(tree.op.type === PLUS) {
-      tree.right + evaluate(tree.left);
+  visit_BinOp(node) {
+    if(node.op.type === PLUS) {
+      return this.visit(node.left) + this.visit(node.right);
     }
-
-    if(tree.op.type === MUL) {
-      tree.right * evaluate(tree.left);
+    if(node.op.type === MUL) {
+      return this.visit(node.left) * this.visit(node.right);
     }
   }
+  visit_Num(node) {
+    return node.value;
+  }
 
-  return tree.value;
+  interpret() {
+    let tree = this.parser.parse();
+    return this.visit(tree);
+  }
 }
 const main = () => {
   // const text = process.argv.splice(2).join("");
-  const lexer = new Lexer("2 * 7 + 3");
-
-  let interpreter = new Parser(lexer);
-  console.log(evaluate(interpreter.parse()));
+  const lexer = new Lexer("2 * ((7 + 3)+(5+5))");
+  let parse = new Parser(lexer)
+  let interpretor = new Interpreter(parse)
+  console.log(interpretor.interpret());
 };
 main();
-debugger;
+
