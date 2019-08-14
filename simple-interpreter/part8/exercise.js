@@ -21,6 +21,14 @@ class BinOp{
   }
 }
 
+class UnaryOp{
+  constructor(op,expr){
+    this.token = this.op = op;
+    this.right = right;
+    this.expr = expr;
+  }
+}
+
 class Num {
   constructor(token) {
     this.token = token;

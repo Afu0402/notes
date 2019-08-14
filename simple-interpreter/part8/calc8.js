@@ -19,6 +19,13 @@ class BinOp {
   }
 }
 
+class UnaryOp {
+  constructor(op,expr) {
+    this.token = this.op = op;
+    this.expr = expr;
+  }
+}
+
 class Num {
   constructor(token) {
     this.token = token;
@@ -162,10 +169,17 @@ class Parser {
   }
 
   factor() {
-    // factor: INTEGER；
-    // returan an INTEGER token value
+
+    // factor : (PLUS | MINUS) factor | INTEGER | LPAREN expr RPAREN
+
     const token = this.current_token;
-    if (token.type === INTEGER) {
+    if(token.type === PLUS) {
+      this.eat(PLUS);
+      return new UnaryOp(token,this.factor())
+    } else if(token.type === MINUS){
+      this.eat(MINUS);
+      return new UnaryOp(token,this.factor())
+    }else if (token.type === INTEGER) {
       this.eat(INTEGER);
       return new Num(token);
     } else if (token.type === LPAREN) {
@@ -195,13 +209,7 @@ class Parser {
   }
 
   expr() {
-    // expr: term((PLUS|MIUNS)term)*
-    //Syntax analysis
-    //Arithmetic expression parser
 
-    // expr   : term ((PLUS | MINUS) term)*
-    // term   : factor ((MUL | DIV) factor)*
-    // factor : INTEGER | LPAREN expr RPAREN
     let node = this.term();
 
     while ([MINUS, PLUS].includes(this.current_token.type)) {
@@ -240,6 +248,12 @@ class Interpreter extends NodeVisitor {
     if(node.op.type === PLUS) {
       return this.visit(node.left) + this.visit(node.right);
     }
+    if(node.op.type === MINUS) {
+      return this.visit(node.left) - this.visit(node.right);
+    }
+    if(node.op.type === DIV) {
+      return this.visit(node.left) / this.visit(node.right);
+    }
     if(node.op.type === MUL) {
       return this.visit(node.left) * this.visit(node.right);
     }
@@ -248,17 +262,25 @@ class Interpreter extends NodeVisitor {
     return node.value;
   }
 
+  visit_UnaryOp(node) {
+    if(node.op.type === PLUS) {
+      return +this.visit(node.expr)
+    } else if (node.op.type === MINUS) {
+      return -this.visit(node.expr)
+    }
+  }
+
   interpret() {
     let tree = this.parser.parse();
+    console.log(tree)
     return this.visit(tree);
   }
 }
 const main = () => {
-  // const text = process.argv.splice(2).join("");
-  const lexer = new Lexer("2 * ((7 + 3)+(5+5))");
+  const lexer = new Lexer("-2+2 * 2 / 2");
   let parse = new Parser(lexer)
   let interpretor = new Interpreter(parse)
   console.log(interpretor.interpret());
 };
 main();
-
+debugger
