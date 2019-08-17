@@ -6,9 +6,27 @@ const MUL = "MUL";
 const DIV = "DIV";
 const LPAREN = "(";
 const RPAREN = ")";
+const ID = "ID"
+const ASSIGN = 'ASSIGN';
+const SEMI = ';';
+
 
 class AST {
   constructor(object) {}
+}
+
+class ASSIGN {
+  constructor(left,op,right) {
+    this.token = this.op = op;
+    this.left = left;
+    this.right = right;
+  }
+}
+class Var {
+  constructor(token) {
+    this.token = token;
+    this.value = token.value;
+  }
 }
 
 class BinOp {
@@ -37,8 +55,16 @@ class Num {
 function isDigit(str) {
   return !isNaN(Number(str));
 }
-function isspace(str) {
+function isspace(str) { 
   const reg = /^\s$/g;
+  return reg.test(str);
+}
+function isalpha(str) {//判断一个字符是不是只有英文字母组成；
+  const reg = /^[a-zA-Z]+$/;
+  return reg.test(str)
+}
+function isalnum(str) { //判断一个字符是不是英文字母或者数字；
+  const reg = /^[a-zA-Z0-9]+$/;
   return reg.test(str);
 }
 
@@ -55,6 +81,10 @@ class Token {
   repr() {
     return this.str();
   }
+}
+
+const reserved_keywords = { //保留字对象集合
+  let: new Token('LET','let')
 }
 
 // lexical analysis
@@ -79,6 +109,15 @@ class Lexer {
     }
   }
 
+  _id(){
+    let result = '';
+    while(this.current_char !== null && isalnum(this.current_char)) {
+      result += this.current_char;
+      this.advance();
+    }
+    return reserved_keywords[result] || new Token(ID,result);
+  }
+
   skip_whitespace() {
     //跳过空白符把指针+1 更新current_char的值；
     while (this.current_char !== null && isspace(this.current_char)) {
@@ -93,9 +132,20 @@ class Lexer {
      */
 
     while (this.current_char !== null && this.current_char !== undefined) {
+      if(isalpha(this.current_char)) {
+        return this._id();
+      }
+      if(this.current_char === '=') {
+        this.advance();
+        return new Token(ASSIGN,'=')
+      }
       if (isspace(this.current_char)) {
         this.skip_whitespace();
         continue;
+      }
+      if(this.current_char === ';') {
+        this.advance();
+        return new Token(SEMI,';');
       }
 
       if (isDigit(this.current_char)) {
@@ -276,11 +326,18 @@ class Interpreter extends NodeVisitor {
   }
 }
 const main = () => {
-  const lexer = new Lexer("5+(-5-2)");
-  let parse = new Parser(lexer)
-  let interpretor = new Interpreter(parse)
-  console.log(interpretor.interpret());
+  const lexer = new Lexer("let a = 1+2");
+  console.log(lexer.get_next_token())
+  console.log(lexer.get_next_token())
+  console.log(lexer.get_next_token())
+  console.log(lexer.get_next_token())
+  console.log(lexer.get_next_token())
+  console.log(lexer.get_next_token())
+  console.log(lexer.get_next_token())
+  console.log(lexer.get_next_token())
+  console.log(lexer.get_next_token())
+  // let parse = new Parser(lexer)
+  // let interpretor = new Interpreter(parse)
+  // console.log(interpretor.interpret());
 };
 main();
-
-q

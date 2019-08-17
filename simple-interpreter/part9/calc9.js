@@ -6,9 +6,40 @@ const MUL = "MUL";
 const DIV = "DIV";
 const LPAREN = "(";
 const RPAREN = ")";
+const ID = "ID"
+const ASSIGN = 'ASSIGN';
+const SEMI = ';';
+const DOT = 'DOT';
+const BEGIN = 'BEGIN';
+const END ='END'
+
 
 class AST {
   constructor(object) {}
+}
+
+class Assign {
+  constructor(left,op,right) {
+    this.token = this.op = op;
+    this.left = left;
+    this.right = right;
+  }
+}
+
+class Compound {
+  constructor(){
+    this.children = [];
+  }
+}
+class Var {
+  constructor(token) {
+    this.token = token;
+    this.value = token.value;
+  }
+}
+
+class NoOp{
+  
 }
 
 class BinOp {
@@ -33,12 +64,21 @@ class Num {
   }
 }
 
+
 //判断一个字符串是否可以被转为整数;
 function isDigit(str) {
   return !isNaN(Number(str));
 }
-function isspace(str) {
+function isspace(str) { 
   const reg = /^\s$/g;
+  return reg.test(str);
+}
+function isalpha(str) {//判断一个字符是不是只有英文字母组成；
+  const reg = /^[a-zA-Z]+$/;
+  return reg.test(str)
+}
+function isalnum(str) { //判断一个字符是不是英文字母或者数字；
+  const reg = /^[a-zA-Z0-9]+$/;
   return reg.test(str);
 }
 
@@ -55,6 +95,12 @@ class Token {
   repr() {
     return this.str();
   }
+}
+
+const reserved_keywords = { //保留字对象集合
+  let: new Token('LET','let'),
+  BEGIN: new Token(BEGIN,'BEGIN'),
+  END: new Token(END,'END')
 }
 
 // lexical analysis
@@ -79,6 +125,23 @@ class Lexer {
     }
   }
 
+  _id(){
+    let result = '';
+    while(this.current_char !== null && isalnum(this.current_char)) {
+      result += this.current_char;
+      this.advance();
+    }
+    return reserved_keywords[result] || new Token(ID,result);
+  }
+
+  peek(){
+    let peek_pos = this.pos + 1;
+    if(peek_pos > this.text.length - 1) {
+      return null
+    }
+    return this.text[peek_pos];
+  }
+
   skip_whitespace() {
     //跳过空白符把指针+1 更新current_char的值；
     while (this.current_char !== null && isspace(this.current_char)) {
@@ -93,9 +156,21 @@ class Lexer {
      */
 
     while (this.current_char !== null && this.current_char !== undefined) {
+      if(isalpha(this.current_char)) {
+        return this._id();
+      }
+      if(this.current_char === ':' && this.peek() === '=') {
+        this.advance();
+        this.advance();
+        return new Token(ASSIGN,':=')
+      }
       if (isspace(this.current_char)) {
         this.skip_whitespace();
         continue;
+      }
+      if(this.current_char === ';') {
+        this.advance();
+        return new Token(SEMI,';');
       }
 
       if (isDigit(this.current_char)) {
@@ -130,6 +205,10 @@ class Lexer {
       if (this.current_char === ")") {
         this.advance();
         return new Token(RPAREN, ")");
+      }
+      if(this.current_char === '.') {
+        this.advance();
+        return new Token(DOT,'.')
       }
 
       this.error();
@@ -187,7 +266,74 @@ class Parser {
       let node = this.expr();
       this.eat(RPAREN);
       return node;
+    } else {
+      return this.variable();
     }
+  }
+
+  program() {
+    let node = this.compound_statement();
+    this.eat(DOT);
+    return node;
+  }
+
+  compound_statement(){
+    this.eat(BEGIN);
+    let nodes = this.statement_list();
+    this.eat(END);
+
+    root = new Compound();
+    for(let node of nodes) {
+      root.children.push(node);
+    }
+
+    return root;
+  }
+
+  statement_list(){
+    let node = this.statement();
+    let nodes = [node];
+    while(this.current_token.type === SEMI) {
+      this.eat(SEMI);
+      nodes.push(this.statement())
+    }
+
+    if(this.current_token.type === ID) {
+      this.error();
+    }
+
+    return nodes;
+  }
+
+  statement(){
+    let node;
+    if(this.current_token.type === BEGIN) {
+       node = this.compound_statement();
+    } else if (this.current_token.type === ID) {
+       node = this.assginment_statement();
+    }else {
+       node = this.empty();
+    }
+
+    return node ;
+  }
+
+  assginment_statement(){
+    let left = this.variable();
+    let token = this.current_token;
+    this.eat(ASSIGN);
+    let right =this.expr();
+    return new Assign(left,token,right)
+  }
+
+  variable(){
+    let node = new Var(this.current_token);
+    this.eat(ID);
+    return node
+  }
+
+  empty(){
+    return new NoOp();
   }
 
   term() {
@@ -228,7 +374,11 @@ class Parser {
   }
 
   parse() {
-    return this.expr();
+    let node = this.program();
+    if(this.current_token.type != EOF) {
+      this.error();
+    }
+    return node;
   }
 }
 class NodeVisitor {
@@ -276,11 +426,32 @@ class Interpreter extends NodeVisitor {
   }
 }
 const main = () => {
-  const lexer = new Lexer("5+(-5-2)");
+  const lexer = new Lexer(`
+    BEGIN
+      BEGIN
+          number := 2;
+          a := number;
+          b := 10 * a + 10 * number / 4;
+          c := a - - b
+      END;
+      x := 11;
+    END.
+  `);
+  // console.log(lexer.get_next_token())
+  // console.log(lexer.get_next_token())
+  // console.log(lexer.get_next_token())
+  // console.log(lexer.get_next_token())
+  // console.log(lexer.get_next_token())
+  // console.log(lexer.get_next_token())
+  // console.log(lexer.get_next_token())
+  // console.log(lexer.get_next_token())
+  // console.log(lexer.get_next_token())
+  // console.log(lexer.get_next_token())
+
   let parse = new Parser(lexer)
-  let interpretor = new Interpreter(parse)
-  console.log(interpretor.interpret());
+  console.log(parse.parse())
+  // let interpretor = new Interpreter(parse)
+  // console.log(interpretor.interpret());
 };
 main();
-
-q
+debugger
