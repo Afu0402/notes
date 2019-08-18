@@ -99,9 +99,18 @@ class Token {
 
 const reserved_keywords = { //保留字对象集合
   let: new Token('LET','let'),
-  BEGIN: new Token(BEGIN,'BEGIN'),
-  END: new Token(END,'END')
+  begin: new Token(BEGIN,'BEGIN'),
+  end: new Token(END,'END'),
 }
+Object.keys(reserved_keywords).forEach(item => {
+  Object.defineProperty(reserved_keywords,key,{
+    get(key){
+      if(key.toLowerCase() === item.toLowerCase()) {
+        
+      }
+    }
+  })
+})
 
 // lexical analysis
 class Lexer {
@@ -282,7 +291,7 @@ class Parser {
     let nodes = this.statement_list();
     this.eat(END);
 
-    root = new Compound();
+    let root = new Compound();
     for(let node of nodes) {
       root.children.push(node);
     }
@@ -392,6 +401,29 @@ class Interpreter extends NodeVisitor {
   constructor(parser){
     super()
     this.parser = parser;
+    this.GLOBAL_SCOPE = {};
+  }  
+
+  visit_Assign(node) {
+    const varName = node.left.value
+    this.GLOBAL_SCOPE[varName] = this.visit(node.right)
+  }
+  visit_Var(node) {
+    let varName = node.value
+    if(!this.GLOBAL_SCOPE[varName]) {
+      throw `${verName} is not defined`;
+    }
+    return this.GLOBAL_SCOPE[varName];
+  }
+
+  visit_Compound(node) {
+    for(let child of node.children) {
+      this.visit(child)
+    }
+  }
+
+  visit_NoOp(node) {
+
   }
 
   visit_BinOp(node) {
@@ -422,6 +454,7 @@ class Interpreter extends NodeVisitor {
 
   interpret() {
     let tree = this.parser.parse();
+    console.log(tree)
     return this.visit(tree);
   }
 }
@@ -431,9 +464,9 @@ const main = () => {
       BEGIN
           number := 2;
           a := number;
-          b := 10 * a + 10 * number / 4;
+          b := 10 * a + 10 * nUmber / 4;
           c := a - - b
-      END;
+      end;
       x := 11;
     END.
   `);
@@ -449,9 +482,9 @@ const main = () => {
   // console.log(lexer.get_next_token())
 
   let parse = new Parser(lexer)
-  console.log(parse.parse())
-  // let interpretor = new Interpreter(parse)
-  // console.log(interpretor.interpret());
+  let interpretor = new Interpreter(parse)
+  interpretor.interpret();
+  console.log(interpretor.GLOBAL_SCOPE);
 };
 main();
 debugger
