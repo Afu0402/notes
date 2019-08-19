@@ -102,15 +102,6 @@ const reserved_keywords = { //保留字对象集合
   begin: new Token(BEGIN,'BEGIN'),
   end: new Token(END,'END'),
 }
-Object.keys(reserved_keywords).forEach(item => {
-  Object.defineProperty(reserved_keywords,key,{
-    get(key){
-      if(key.toLowerCase() === item.toLowerCase()) {
-        
-      }
-    }
-  })
-})
 
 // lexical analysis
 class Lexer {
