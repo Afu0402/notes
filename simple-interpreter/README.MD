@@ -10,5 +10,6 @@
 * [Part 6](https://github.com/Afu0402/notes/blob/master/simple-interpreter/part6)
 * [Part 7](https://github.com/Afu0402/notes/blob/master/simple-interpreter/part7)
 * [Part 8](https://github.com/Afu0402/notes/blob/master/simple-interpreter/part8)
+* [Part 9](https://github.com/Afu0402/notes/blob/master/simple-interpreter/part9)
 ## 相关资料推荐
 *编程语言实现模式：https://book.douban.com/subject/10482195/

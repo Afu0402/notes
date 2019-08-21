@@ -98,25 +98,15 @@ class Token {
 }
 
 const reserved_keywords = { //保留字对象集合
-  let: new Token('LET','let'),
-  begin: new Token(BEGIN,'BEGIN'),
-  end: new Token(END,'END'),
+  BEGIN: new Token(BEGIN,'BEGIN'),
+  END: new Token(END,'END'),
 }
-Object.keys(reserved_keywords).forEach(item => {
-  Object.defineProperty(reserved_keywords,key,{
-    get(key){
-      if(key.toLowerCase() === item.toLowerCase()) {
-        
-      }
-    }
-  })
-})
 
 // lexical analysis
 class Lexer {
   constructor(text) {
     this.text = text;
-    this.pos = 0;
+    this.pos = 0; // 当前字符的位置；
     this.current_char = this.text[this.pos];
   }
 
@@ -135,6 +125,7 @@ class Lexer {
   }
 
   _id(){
+    // 判断一个字符是否只有英文字母组成，组成字符串后匹配是否是保留字。如果是返回相应的保留字，否则返回ID token 既一个变量标识符；
     let result = '';
     while(this.current_char !== null && isalnum(this.current_char)) {
       result += this.current_char;
@@ -144,6 +135,7 @@ class Lexer {
   }
 
   peek(){
+    // 提前返回下一个字符 为了方便判断拥有相同字符开头的字符串 比如 = := == => ===
     let peek_pos = this.pos + 1;
     if(peek_pos > this.text.length - 1) {
       return null
@@ -226,7 +218,7 @@ class Lexer {
   }
 
   integer() {
-    // 循环查找字符知道碰到一个不是整数字符位置。合并查找到的字符并返回一个整数数字；
+    // 循环查找字符之到碰到一个不是整数字符位置。合并查找到的字符并返回一个整数数字；
     let result = "";
     while (this.current_char !== null && isDigit(this.current_char)) {
       result += this.current_char;
@@ -248,7 +240,7 @@ class Parser {
     throw "SyntaxError: invalid syntax";
   }
 
-  eat(token_type) {
+  eat(token_type) {// 判断传进来的类型是否和当前类型稳合，是的话跳到下一个字符。主要是用来判断当前的token是否复合语法的token.
     if (this.current_token.type === token_type) {
       this.current_token = this.lexer.get_next_token();
     } else {
@@ -261,32 +253,43 @@ class Parser {
     // factor : (PLUS | MINUS) factor | INTEGER | LPAREN expr RPAREN
 
     const token = this.current_token;
-    if(token.type === PLUS) {
+    if(token.type === PLUS) { 
+      //返回一元+的操作数 token 
       this.eat(PLUS);
       return new UnaryOp(token,this.factor())
     } else if(token.type === MINUS){
+      //返回一元-的操作数 token 
       this.eat(MINUS);
       return new UnaryOp(token,this.factor())
     }else if (token.type === INTEGER) {
       this.eat(INTEGER);
       return new Num(token);
     } else if (token.type === LPAREN) {
+      // LPAREN exper RPAREN
       this.eat(LPAREN);
       let node = this.expr();
       this.eat(RPAREN);
       return node;
     } else {
+      // 返回一个ID token or reserved keywords
       return this.variable();
     }
   }
 
   program() {
+    // 解析Pascal程序
+    //program: compound-statement DOT
     let node = this.compound_statement();
     this.eat(DOT);
     return node;
   }
 
   compound_statement(){
+    /**
+     * compund-statement: BEGIN statement-list END
+     * 解析复合语句
+     * 
+     */
     this.eat(BEGIN);
     let nodes = this.statement_list();
     this.eat(END);
@@ -300,6 +303,12 @@ class Parser {
   }
 
   statement_list(){
+    /**
+     * 
+     * statement-list: statement | statement SEMI statement
+     * 
+     * 
+     */
     let node = this.statement();
     let nodes = [node];
     while(this.current_token.type === SEMI) {
@@ -315,6 +324,7 @@ class Parser {
   }
 
   statement(){
+    //statement: compund-statement | assginment-statement | empty 
     let node;
     if(this.current_token.type === BEGIN) {
        node = this.compound_statement();
@@ -328,6 +338,7 @@ class Parser {
   }
 
   assginment_statement(){
+    // assginment: variable ASSGIN expr
     let left = this.variable();
     let token = this.current_token;
     this.eat(ASSIGN);
@@ -364,7 +375,7 @@ class Parser {
   }
 
   expr() {
-
+    // expr: term (PLUS | MINUS) term
     let node = this.term();
 
     while ([MINUS, PLUS].includes(this.current_token.type)) {
@@ -392,6 +403,7 @@ class Parser {
 }
 class NodeVisitor {
   visit(node) {
+    // 获取node节点的构造函数名。这样之后只要在子类添加 visit_开头+对应的node类名的方法就可以了。子类只需要调用visit就能自动判断应该调用哪个对应的visit_Node方法
     const method_name = `visit_${node.constructor.name}`;
     return this[method_name](node)
   }
@@ -401,7 +413,7 @@ class Interpreter extends NodeVisitor {
   constructor(parser){
     super()
     this.parser = parser;
-    this.GLOBAL_SCOPE = {};
+    this.GLOBAL_SCOPE = {}; //临时粗存变量的地方；
   }  
 
   visit_Assign(node) {
@@ -463,23 +475,11 @@ const main = () => {
     BEGIN
       BEGIN
           number := 2;
-          a := number;
-          b := 10 * a + 10 * nUmber / 4;
-          c := a - - b
-      end;
+          a := number * 3;
+      END;
       x := 11;
     END.
   `);
-  // console.log(lexer.get_next_token())
-  // console.log(lexer.get_next_token())
-  // console.log(lexer.get_next_token())
-  // console.log(lexer.get_next_token())
-  // console.log(lexer.get_next_token())
-  // console.log(lexer.get_next_token())
-  // console.log(lexer.get_next_token())
-  // console.log(lexer.get_next_token())
-  // console.log(lexer.get_next_token())
-  // console.log(lexer.get_next_token())
 
   let parse = new Parser(lexer)
   let interpretor = new Interpreter(parse)
