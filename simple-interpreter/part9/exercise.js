@@ -9,17 +9,26 @@ const RPAREN = ")";
 const ID = "ID"
 const ASSIGN = 'ASSIGN';
 const SEMI = ';';
+const DOT = 'DOT';
+const BEGIN = 'BEGIN';
+const END ='END'
 
 
 class AST {
   constructor(object) {}
 }
 
-class ASSIGN {
+class Assign {
   constructor(left,op,right) {
     this.token = this.op = op;
     this.left = left;
     this.right = right;
+  }
+}
+
+class Compound {
+  constructor(){
+    this.children = [];
   }
 }
 class Var {
@@ -27,6 +36,10 @@ class Var {
     this.token = token;
     this.value = token.value;
   }
+}
+
+class NoOp{
+  
 }
 
 class BinOp {
@@ -51,6 +64,7 @@ class Num {
   }
 }
 
+
 //判断一个字符串是否可以被转为整数;
 function isDigit(str) {
   return !isNaN(Number(str));
@@ -60,11 +74,11 @@ function isspace(str) {
   return reg.test(str);
 }
 function isalpha(str) {//判断一个字符是不是只有英文字母组成；
-  const reg = /^[a-zA-Z]+$/;
+  const reg = /^[_a-zA-Z]\w*$/;
   return reg.test(str)
 }
 function isalnum(str) { //判断一个字符是不是英文字母或者数字；
-  const reg = /^[a-zA-Z0-9]+$/;
+  const reg = /^[_a-zA-Z0-9]+$/;
   return reg.test(str);
 }
 
@@ -84,7 +98,18 @@ class Token {
 }
 
 const reserved_keywords = { //保留字对象集合
-  let: new Token('LET','let')
+  let: new Token('LET','let'),
+  BEGIN: new Token(BEGIN,'BEGIN'),
+  END: new Token(END,'END'),
+  DIV: new Token(DIV,'DIV'),
+  get(key) {
+    let keyUpCase = key.toUpperCase();
+    return this[keyUpCase];
+  },
+  set(key,value) {
+    let keyUpCase = key.toUpperCase();
+    this[keyUpCase] = value;
+  }
 }
 
 // lexical analysis
@@ -115,7 +140,15 @@ class Lexer {
       result += this.current_char;
       this.advance();
     }
-    return reserved_keywords[result] || new Token(ID,result);
+    return reserved_keywords.get(result) || new Token(ID,result);
+  }
+
+  peek(){
+    let peek_pos = this.pos + 1;
+    if(peek_pos > this.text.length - 1) {
+      return null
+    }
+    return this.text[peek_pos];
   }
 
   skip_whitespace() {
@@ -135,9 +168,10 @@ class Lexer {
       if(isalpha(this.current_char)) {
         return this._id();
       }
-      if(this.current_char === '=') {
+      if(this.current_char === ':' && this.peek() === '=') {
         this.advance();
-        return new Token(ASSIGN,'=')
+        this.advance();
+        return new Token(ASSIGN,':=')
       }
       if (isspace(this.current_char)) {
         this.skip_whitespace();
@@ -167,10 +201,10 @@ class Lexer {
         return new Token(MUL, "*");
       }
 
-      if (this.current_char === "/") {
-        this.advance();
-        return new Token(DIV, "/");
-      }
+      // if (this.current_char === "/") {
+      //   this.advance();
+      //   return new Token(DIV, "/");
+      // }
 
       if (this.current_char === "(") {
         this.advance();
@@ -180,6 +214,10 @@ class Lexer {
       if (this.current_char === ")") {
         this.advance();
         return new Token(RPAREN, ")");
+      }
+      if(this.current_char === '.') {
+        this.advance();
+        return new Token(DOT,'.')
       }
 
       this.error();
@@ -237,7 +275,74 @@ class Parser {
       let node = this.expr();
       this.eat(RPAREN);
       return node;
+    } else {
+      return this.variable();
     }
+  }
+
+  program() {
+    let node = this.compound_statement();
+    this.eat(DOT);
+    return node;
+  }
+
+  compound_statement(){
+    this.eat(BEGIN);
+    let nodes = this.statement_list();
+    this.eat(END);
+
+    let root = new Compound();
+    for(let node of nodes) {
+      root.children.push(node);
+    }
+
+    return root;
+  }
+
+  statement_list(){
+    let node = this.statement();
+    let nodes = [node];
+    while(this.current_token.type === SEMI) {
+      this.eat(SEMI);
+      nodes.push(this.statement())
+    }
+
+    if(this.current_token.type === ID) {
+      this.error();
+    }
+
+    return nodes;
+  }
+
+  statement(){
+    let node;
+    if(this.current_token.type === BEGIN) {
+       node = this.compound_statement();
+    } else if (this.current_token.type === ID) {
+       node = this.assginment_statement();
+    }else {
+       node = this.empty();
+    }
+
+    return node ;
+  }
+
+  assginment_statement(){
+    let left = this.variable();
+    let token = this.current_token;
+    this.eat(ASSIGN);
+    let right =this.expr();
+    return new Assign(left,token,right)
+  }
+
+  variable(){
+    let node = new Var(this.current_token);
+    this.eat(ID);
+    return node
+  }
+
+  empty(){
+    return new NoOp();
   }
 
   term() {
@@ -278,7 +383,11 @@ class Parser {
   }
 
   parse() {
-    return this.expr();
+    let node = this.program();
+    if(this.current_token.type != EOF) {
+      this.error();
+    }
+    return node;
   }
 }
 class NodeVisitor {
@@ -292,6 +401,39 @@ class Interpreter extends NodeVisitor {
   constructor(parser){
     super()
     this.parser = parser;
+    this.GLOBAL_SCOPE = {
+      get(key){
+        let keyUpperCase = key.toUpperCase();
+        return this[keyUpperCase]
+      },
+      set(key,value){
+        let keyUpperCase = key.toUpperCase();
+        this[keyUpperCase] = value;
+      }
+    };
+  }  
+
+  visit_Assign(node) {
+    const varName = node.left.value
+    this.GLOBAL_SCOPE.set(varName,this.visit(node.right))
+  }
+  visit_Var(node) {
+    let varName = node.value
+    console.log(varName)
+    if(!this.GLOBAL_SCOPE.get(varName)) {
+      throw `${varName} is not defined`;
+    }
+    return this.GLOBAL_SCOPE.get(varName);
+  }
+
+  visit_Compound(node) {
+    for(let child of node.children) {
+      this.visit(child)
+    }
+  }
+
+  visit_NoOp(node) {
+
   }
 
   visit_BinOp(node) {
@@ -322,22 +464,20 @@ class Interpreter extends NodeVisitor {
 
   interpret() {
     let tree = this.parser.parse();
+    console.log(tree)
     return this.visit(tree);
   }
 }
 const main = () => {
-  const lexer = new Lexer("let a = 1+2");
-  console.log(lexer.get_next_token())
-  console.log(lexer.get_next_token())
-  console.log(lexer.get_next_token())
-  console.log(lexer.get_next_token())
-  console.log(lexer.get_next_token())
-  console.log(lexer.get_next_token())
-  console.log(lexer.get_next_token())
-  console.log(lexer.get_next_token())
-  console.log(lexer.get_next_token())
-  // let parse = new Parser(lexer)
-  // let interpretor = new Interpreter(parse)
-  // console.log(interpretor.interpret());
+  const lexer = new Lexer(`
+    BEGIN
+          _umber := 10 div 2 div 2;
+    END.
+  `);
+  let parse = new Parser(lexer)
+  let interpretor = new Interpreter(parse)
+  interpretor.interpret();
+  console.log(interpretor.GLOBAL_SCOPE);
 };
 main();
+debugger
