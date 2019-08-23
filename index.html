@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    .wrap {
+      position: relative;
+      box-sizing: border-box;
+      padding:10px;
+      border:2px solid #000;
+      white-space: nowrap;
+      overflow: auto;
+      width:200px;
+    }
+    .item {
+      display:inline-block;
+      box-sizing: border-box;
+      width:50px;
+      height:50px;
+      background: red;
+      margin-left:10px;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="wrap" id="wrap">
+    <div class="item" onclick="computerDistance(event)">1</div>
+    <div class="item" onclick="computerDistance(event)">2</div>
+    <div class="item" onclick="computerDistance(event)">3</div>
+    <div class="item" onclick="computerDistance(event)">4</div>
+    <div class="item" onclick="computerDistance(event)">5</div>
+    <div class="item" onclick="computerDistance(event)">6</div>
+    <div class="item" onclick="computerDistance(event)">7</div>
+    <div class="item">5</div>
+  </div>
+
+  <button onclick="showWrapScoll()">button</button>
+
+  <script>
+    const wrap = document.getElementById('wrap');
+    function showWrapScoll() {
+     console.log(wrap.scrollLeft) 
+    }
+    function computerDistance(e){
+      const offsetLeft = e.target.offsetLeft; // 元素相对父元素的offsetLeft距离
+      const scrollLeft = wrap.scrollLeft;  // 父元素滑动距离；
+      const itemVisible = 200 - (offsetLeft - scrollLeft) //当前被点击对象在当前窗口的显示范围(宽度)
+      if(itemVisible < 50) { //如果 itemVisible 小于 50(就是被点击对象本身的宽度) 就证明当前的元素在当前窗口显示不完整，需要调整；
+
+        // 方案一：小移动直到显示当前元素完整为止
+        // wrap.scrollLeft = wrap.scrollLeft + (60 - itemVisible); 
+
+        //方案二：直接将当前元素滑动到第一个，并显示后面完整的元素；
+        wrap.scrollLeft = e.target.offsetLeft - 10;  
+      }
+      // wrap.scrollLeft = e.target.offsetLeft - 20;
+    }
+
+  </script>
+</body>
+</html>
