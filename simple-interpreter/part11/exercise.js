@@ -13,7 +13,7 @@ const DOT = 'DOT';
 const BEGIN = 'BEGIN';
 const END ='END'
 
-
+/** AST node */
 class AST {
   constructor(object) {}
 }
@@ -65,6 +65,9 @@ class Num {
 }
 
 
+/** tools */
+
+
 //判断一个字符串是否可以被转为整数;
 function isDigit(str) {
   return !isNaN(Number(str));
@@ -74,11 +77,11 @@ function isspace(str) {
   return reg.test(str);
 }
 function isalpha(str) {//判断一个字符是不是只有英文字母组成；
-  const reg = /^[a-zA-Z]+$/;
+  const reg = /^[_a-zA-Z]\w*$/;
   return reg.test(str)
 }
 function isalnum(str) { //判断一个字符是不是英文字母或者数字；
-  const reg = /^[a-zA-Z0-9]+$/;
+  const reg = /^[_a-zA-Z0-9]+$/;
   return reg.test(str);
 }
 
@@ -98,15 +101,26 @@ class Token {
 }
 
 const reserved_keywords = { //保留字对象集合
+  let: new Token('LET','let'),
   BEGIN: new Token(BEGIN,'BEGIN'),
   END: new Token(END,'END'),
+  DIV: new Token(DIV,'DIV'),
+  get(key) {
+    let keyUpCase = key.toUpperCase();
+    return this[keyUpCase];
+  },
+  set(key,value) {
+    let keyUpCase = key.toUpperCase();
+    this[keyUpCase] = value;
+  }
 }
 
-// lexical analysis
+/** lexical analysis */
+
 class Lexer {
   constructor(text) {
     this.text = text;
-    this.pos = 0; // 当前字符的位置；
+    this.pos = 0;
     this.current_char = this.text[this.pos];
   }
 
@@ -125,17 +139,15 @@ class Lexer {
   }
 
   _id(){
-    // 判断一个字符是否只有英文字母组成，组成字符串后匹配是否是保留字。如果是返回相应的保留字，否则返回ID token 既一个变量标识符；
     let result = '';
     while(this.current_char !== null && isalnum(this.current_char)) {
       result += this.current_char;
       this.advance();
     }
-    return reserved_keywords[result] || new Token(ID,result);
+    return reserved_keywords.get(result) || new Token(ID,result);
   }
 
   peek(){
-    // 提前返回下一个字符 为了方便判断拥有相同字符开头的字符串 比如 = := == => ===
     let peek_pos = this.pos + 1;
     if(peek_pos > this.text.length - 1) {
       return null
@@ -193,10 +205,10 @@ class Lexer {
         return new Token(MUL, "*");
       }
 
-      if (this.current_char === "/") {
-        this.advance();
-        return new Token(DIV, "/");
-      }
+      // if (this.current_char === "/") {
+      //   this.advance();
+      //   return new Token(DIV, "/");
+      // }
 
       if (this.current_char === "(") {
         this.advance();
@@ -218,7 +230,7 @@ class Lexer {
   }
 
   integer() {
-    // 循环查找字符之到碰到一个不是整数字符位置。合并查找到的字符并返回一个整数数字；
+    // 循环查找字符知道碰到一个不是整数字符位置。合并查找到的字符并返回一个整数数字；
     let result = "";
     while (this.current_char !== null && isDigit(this.current_char)) {
       result += this.current_char;
@@ -229,7 +241,7 @@ class Lexer {
 }
 
 
-
+/** Parser */
 class Parser {
   constructor(lexer) {
     this.lexer = lexer;
@@ -240,7 +252,7 @@ class Parser {
     throw "SyntaxError: invalid syntax";
   }
 
-  eat(token_type) {// 判断传进来的类型是否和当前类型稳合，是的话跳到下一个字符。主要是用来判断当前的token是否复合语法的token.
+  eat(token_type) {
     if (this.current_token.type === token_type) {
       this.current_token = this.lexer.get_next_token();
     } else {
@@ -253,43 +265,32 @@ class Parser {
     // factor : (PLUS | MINUS) factor | INTEGER | LPAREN expr RPAREN
 
     const token = this.current_token;
-    if(token.type === PLUS) { 
-      //返回一元+的操作数 token 
+    if(token.type === PLUS) {
       this.eat(PLUS);
       return new UnaryOp(token,this.factor())
     } else if(token.type === MINUS){
-      //返回一元-的操作数 token 
       this.eat(MINUS);
       return new UnaryOp(token,this.factor())
     }else if (token.type === INTEGER) {
       this.eat(INTEGER);
       return new Num(token);
     } else if (token.type === LPAREN) {
-      // LPAREN exper RPAREN
       this.eat(LPAREN);
       let node = this.expr();
       this.eat(RPAREN);
       return node;
     } else {
-      // 返回一个ID token or reserved keywords
       return this.variable();
     }
   }
 
   program() {
-    // 解析Pascal程序
-    //program: compound-statement DOT
     let node = this.compound_statement();
     this.eat(DOT);
     return node;
   }
 
   compound_statement(){
-    /**
-     * compund-statement: BEGIN statement-list END
-     * 解析复合语句
-     * 
-     */
     this.eat(BEGIN);
     let nodes = this.statement_list();
     this.eat(END);
@@ -303,12 +304,6 @@ class Parser {
   }
 
   statement_list(){
-    /**
-     * 
-     * statement-list: statement | statement SEMI statement
-     * 
-     * 
-     */
     let node = this.statement();
     let nodes = [node];
     while(this.current_token.type === SEMI) {
@@ -324,7 +319,6 @@ class Parser {
   }
 
   statement(){
-    //statement: compund-statement | assginment-statement | empty 
     let node;
     if(this.current_token.type === BEGIN) {
        node = this.compound_statement();
@@ -338,7 +332,6 @@ class Parser {
   }
 
   assginment_statement(){
-    // assginment: variable ASSGIN expr
     let left = this.variable();
     let token = this.current_token;
     this.eat(ASSIGN);
@@ -375,7 +368,7 @@ class Parser {
   }
 
   expr() {
-    // expr: term (PLUS | MINUS) term
+
     let node = this.term();
 
     while ([MINUS, PLUS].includes(this.current_token.type)) {
@@ -401,31 +394,44 @@ class Parser {
     return node;
   }
 }
+
+/** Visitor */
 class NodeVisitor {
   visit(node) {
-    // 获取node节点的构造函数名。这样之后只要在子类添加 visit_开头+对应的node类名的方法就可以了。子类只需要调用visit就能自动判断应该调用哪个对应的visit_Node方法
     const method_name = `visit_${node.constructor.name}`;
     return this[method_name](node)
   }
 }
 
+/** Interpreter */
+
 class Interpreter extends NodeVisitor {
   constructor(parser){
     super()
     this.parser = parser;
-    this.GLOBAL_SCOPE = {}; //临时粗存变量的地方；
+    this.GLOBAL_SCOPE = {
+      get(key){
+        let keyUpperCase = key.toUpperCase();
+        return this[keyUpperCase]
+      },
+      set(key,value){
+        let keyUpperCase = key.toUpperCase();
+        this[keyUpperCase] = value;
+      }
+    };
   }  
 
   visit_Assign(node) {
     const varName = node.left.value
-    this.GLOBAL_SCOPE[varName] = this.visit(node.right)
+    this.GLOBAL_SCOPE.set(varName,this.visit(node.right))
   }
   visit_Var(node) {
     let varName = node.value
-    if(!this.GLOBAL_SCOPE[varName]) {
-      throw `${verName} is not defined`;
+    console.log(varName)
+    if(!this.GLOBAL_SCOPE.get(varName)) {
+      throw `${varName} is not defined`;
     }
-    return this.GLOBAL_SCOPE[varName];
+    return this.GLOBAL_SCOPE.get(varName);
   }
 
   visit_Compound(node) {
@@ -473,15 +479,9 @@ class Interpreter extends NodeVisitor {
 const main = () => {
   const lexer = new Lexer(`
     BEGIN
-      BEGIN
-          number := 2;
-          a := number * 3;
-          b := a + 10 + (4-2) *3
-      END;
-      x := 11;
+          _umber := 10 div 2 div 2;
     END.
   `);
-
   let parse = new Parser(lexer)
   let interpretor = new Interpreter(parse)
   interpretor.interpret();
