@@ -582,11 +582,9 @@ class Interpreter extends NodeVisitor {
     this.visit(node.compound_statement)
   }
   visit_VarDecl(node){
-    console.log(node)
   }
 
   visit_Type(node) {
-    console.log(node)
   }
 
   visit_NoOp(node) {}
@@ -619,7 +617,6 @@ class Interpreter extends NodeVisitor {
 
   interpret() {
     let tree = this.parser.parse();
-    console.log(tree);
     return this.visit(tree);
   }
 }
@@ -639,7 +636,7 @@ const main = () => {
 
   let parse = new Parser(lexer);
   let interpretor = new Interpreter(parse);
-  console.log(interpretor.interpret())
+  interpretor.interpret()
   console.log(interpretor.GLOBAL_SCOPE)
   
 };
