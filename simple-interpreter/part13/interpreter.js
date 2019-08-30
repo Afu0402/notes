@@ -131,11 +131,12 @@ class SymbolTable {
   }
 
   _initBuitinType() {
-    this.defineSymbol(new BuiltinTypeSymbol('INTEGER'));
-    this.defineSymbol(new BuiltinTypeSymbol('REAL'));
+    //初始化内置变量
+    this.inset(new BuiltinTypeSymbol('INTEGER'));
+    this.inset(new BuiltinTypeSymbol('REAL'));
   }
 
-  defineSymbol(obj) {
+  inset(obj) {
     this._symbols[obj.name] = obj;
   }
 
@@ -611,11 +612,11 @@ class NodeVisitor {
   }
 }
 
-/** SymbolTableBuilder 
- * 遍历由Parser自动创建保存程序相关的符号；
+/** SemanticAnalyzer 
+ * 遍历由Parser生成的AST树，查找储存变量的声明信息，检查变量在使用前是否被声明；
 */
 
-class SymbolTableBuilder extends NodeVisitor {
+class SemanticAnalyzer extends NodeVisitor {
   constructor() {
     super();
     this.symtab = new SymbolTable();
@@ -652,31 +653,40 @@ class SymbolTableBuilder extends NodeVisitor {
   }
 
   visit_Assign(node) {
-    const var_name = node.left.value;
-    const symbol = this.symtab.lookup(var_name);
-    if(!symbol) {
-      throw new SyntaxError(`${var_name} is not declaration `)
-    }
+    this.visit(node.left);
     this.visit(node.right);
   }
   visit_Var(node) {
+    /**
+     * 解析Var node;
+     * 负责检查变量在使用前是否声明；
+     * 
+     */
     const var_name = node.value;
     const symbol = this.symtab.lookup(var_name);
     if(!symbol) {
       throw new ReferenceError(`${var_name} is not defined`)
     }
-
   }
 
   visit_NoOp(node) {}
   visit_Num(node) {}
 
   visit_VarDecl(node) {
+    /**
+     * 解析 VarDecl Node.
+     * 负责插入变量声明信息到symbol tabals;
+     * 负责检查是否有重复声明的变量；
+     */
     const typeName = node.type_node.value;
     const typeSymbol = this.symtab.lookup(typeName);
     const varName = node.var_node.value;
+    if(this.symtab.lookup(varName)) {
+      //
+      throw new ReferenceError(`${varName} have alread declarated`)
+    }
     const varSymbol = new VarSymbol(varName,typeSymbol);
-    this.symtab.defineSymbol(varSymbol);
+    this.symtab.inset(varSymbol);
   }
 }
 
@@ -755,7 +765,7 @@ class Interpreter extends NodeVisitor {
   interpret() {
     let tree = this.parser.parse();
     console.log(tree)
-    let symtabBuiler = new SymbolTableBuilder();
+    let symtabBuiler = new SemanticAnalyzer();
       symtabBuiler.visit(tree);
       console.log(symtabBuiler.symtab)
     return this.visit(tree);
@@ -771,7 +781,7 @@ const main = () => {
         VAR
           age : INTEGER;
         BEGIN
-          age := 19;
+          dd := ss;
         END;     
       BEGIN {Part10AST}
           a := 12;
