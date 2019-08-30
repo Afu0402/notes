@@ -18,5 +18,7 @@ part9 开始构建一个简单的程序解释器;
 * [Part 9](https://github.com/Afu0402/notes/blob/master/simple-interpreter/part9)
 * [Part 10](https://github.com/Afu0402/notes/blob/master/simple-interpreter/part10)
 * [Part 11](https://github.com/Afu0402/notes/blob/master/simple-interpreter/part11)
+* [Part 12](https://github.com/Afu0402/notes/blob/master/simple-interpreter/part12)
+* [Part 13](https://github.com/Afu0402/notes/blob/master/simple-interpreter/part13)
 ## 相关资料推荐
 *编程语言实现模式：https://book.douban.com/subject/10482195/
