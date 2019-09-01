@@ -61,10 +61,18 @@ class VarDecl {
   }
 }
 
+class Param {
+  constructor(var_node, type_node) {
+    this.var_node = var_node;
+    this.type_node = type_node;
+  }
+}
+
 class ProcedureDecl {
-  constructor(proc_name, block_node) {
+  constructor(proc_name, block_node,params = null) {
     this.proc_name = proc_name;
     this.block_node = block_node;
+    this.params = params // 一个由ParamNode组成的参数列表
   }
 }
 
@@ -124,8 +132,10 @@ class VarSymbol extends Symbol {
   }
 }
 
-class SymbolTable {
-  constructor() {
+class ScopedSymbolTable {
+  constructor(scopeName,scopeLevel) {
+    this.scopeName = scopeName;
+    this.scopeLevel = scopeLevel;
     this._symbols = {};
     this._initBuitinType();
   }
@@ -618,7 +628,7 @@ class NodeVisitor {
 class SymbolTableBuilder extends NodeVisitor {
   constructor() {
     super();
-    this.symtab = new SymbolTable();
+    this.symtab = new ScopedSymbolTable('globle',1);
   }
 
   visit_Program(node) {
