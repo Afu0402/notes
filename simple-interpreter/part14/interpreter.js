@@ -1,27 +1,26 @@
-const INTEGER = 'INTEGER';
-const PLUS = 'PLUS';
-const EOF = 'EOF'; //表示没有更多的字符需要解析
-const MINUS = 'MINUS';
-const MUL = 'MUL';
-const LPAREN = '(';
-const RPAREN = ')';
-const ID = 'ID';
-const ASSIGN = 'ASSIGN';
-const SEMI = ';';
-const DOT = 'DOT';
-const BEGIN = 'BEGIN';
-const END = 'END';
-const COLON = ':';
-const FLOAT_DIV = '/';
-const VAR = 'VAR';
-const REAL = 'REAL';
-const PROGRAM = 'PROGRAM';
-const COMMA = ',';
-const INTEGER_CONST = 'INTEGER_CONST';
-const REAL_CONST = 'REAL_CONST';
-const INTEGER_DIV = 'INTEGER_DIV';
+const INTEGER = "INTEGER";
+const PLUS = "PLUS";
+const EOF = "EOF"; //表示没有更多的字符需要解析
+const MINUS = "MINUS";
+const MUL = "MUL";
+const LPAREN = "(";
+const RPAREN = ")";
+const ID = "ID";
+const ASSIGN = "ASSIGN";
+const SEMI = ";";
+const DOT = "DOT";
+const BEGIN = "BEGIN";
+const END = "END";
+const COLON = ":";
+const FLOAT_DIV = "/";
+const VAR = "VAR";
+const REAL = "REAL";
+const PROGRAM = "PROGRAM";
+const COMMA = ",";
+const INTEGER_CONST = "INTEGER_CONST";
+const REAL_CONST = "REAL_CONST";
+const INTEGER_DIV = "INTEGER_DIV";
 const PROCEDURE = "PROCEDURE";
-
 
 /** AST node */
 class AST {
@@ -69,10 +68,10 @@ class Param {
 }
 
 class ProcedureDecl {
-  constructor(proc_name, block_node,params = null) {
+  constructor(proc_name, block_node, params = null) {
     this.proc_name = proc_name;
     this.block_node = block_node;
-    this.params = params // 一个由ParamNode组成的参数列表
+    this.params = params; // 一个由ParamNode组成的参数列表
   }
 }
 
@@ -133,7 +132,7 @@ class VarSymbol extends Symbol {
 }
 
 class ScopedSymbolTable {
-  constructor(scopeName,scopeLevel) {
+  constructor(scopeName, scopeLevel) {
     this.scopeName = scopeName;
     this.scopeLevel = scopeLevel;
     this._symbols = {};
@@ -141,8 +140,8 @@ class ScopedSymbolTable {
   }
 
   _initBuitinType() {
-    this.defineSymbol(new BuiltinTypeSymbol('INTEGER'));
-    this.defineSymbol(new BuiltinTypeSymbol('REAL'));
+    this.defineSymbol(new BuiltinTypeSymbol("INTEGER"));
+    this.defineSymbol(new BuiltinTypeSymbol("REAL"));
   }
 
   defineSymbol(obj) {
@@ -190,14 +189,14 @@ class Token {
 
 const reserved_keywords = {
   //保留字对象集合
-  BEGIN: new Token(BEGIN, 'BEGIN'),
-  END: new Token(END, 'END'),
-  DIV: new Token('INTEGER_DIV', 'DIV'),
-  PROGRAM: new Token('PROGRAM', 'PROGRAM'),
-  VAR: new Token('VAR', 'VAR'),
-  INTEGER: new Token('INTEGER', 'INTEGER'),
-  REAL: new Token('REAL', 'REAL'),
-  PROCEDURE: new Token('PROCEDURE', 'PROCEDURE'),
+  BEGIN: new Token(BEGIN, "BEGIN"),
+  END: new Token(END, "END"),
+  DIV: new Token("INTEGER_DIV", "DIV"),
+  PROGRAM: new Token("PROGRAM", "PROGRAM"),
+  VAR: new Token("VAR", "VAR"),
+  INTEGER: new Token("INTEGER", "INTEGER"),
+  REAL: new Token("REAL", "REAL"),
+  PROCEDURE: new Token("PROCEDURE", "PROCEDURE")
 };
 
 /** lexical analysis */
@@ -210,7 +209,7 @@ class Lexer {
   }
 
   error() {
-    throw 'SyntaxError: invalid syntax';
+    throw "SyntaxError: invalid syntax";
   }
 
   advance() {
@@ -225,7 +224,7 @@ class Lexer {
 
   _id() {
     // 判断一个字符是否只有英文字母组成，组成字符串后匹配是否是保留字。如果是返回相应的保留字，否则返回ID token 既一个变量标识符；
-    let result = '';
+    let result = "";
     while (this.current_char !== null && isalnum(this.current_char)) {
       result += this.current_char;
       this.advance();
@@ -244,7 +243,7 @@ class Lexer {
 
   skip_comment() {
     // 跳过注释语句 直到找到 '}'为止！
-    while (this.current_char != '}') {
+    while (this.current_char != "}") {
       this.advance();
     }
     this.advance();
@@ -264,74 +263,74 @@ class Lexer {
      */
 
     while (this.current_char !== null && this.current_char !== undefined) {
-      if (this.current_char === '{') {
+      if (this.current_char === "{") {
         // 跳过注释例如  {..................}
         this.advance();
         this.skip_comment();
         continue;
       }
 
-      if (this.current_char === ',') {
+      if (this.current_char === ",") {
         this.advance();
-        return new Token(COMMA, ',');
+        return new Token(COMMA, ",");
       }
       if (isalpha(this.current_char)) {
         return this._id();
       }
-      if (this.current_char === ':' && this.peek() === '=') {
+      if (this.current_char === ":" && this.peek() === "=") {
         this.advance();
         this.advance();
-        return new Token(ASSIGN, ':=');
+        return new Token(ASSIGN, ":=");
       }
-      if (this.current_char === ':') {
+      if (this.current_char === ":") {
         this.advance();
-        return new Token(COLON, ':');
+        return new Token(COLON, ":");
       }
       if (isspace(this.current_char)) {
         this.skip_whitespace();
         continue;
       }
-      if (this.current_char === ';') {
+      if (this.current_char === ";") {
         this.advance();
-        return new Token(SEMI, ';');
+        return new Token(SEMI, ";");
       }
 
       if (isDigit(this.current_char)) {
         return this.number();
       }
 
-      if (this.current_char === '+') {
+      if (this.current_char === "+") {
         this.advance();
-        return new Token(PLUS, '+');
+        return new Token(PLUS, "+");
       }
 
-      if (this.current_char === '-') {
+      if (this.current_char === "-") {
         this.advance();
-        return new Token(MINUS, '-');
+        return new Token(MINUS, "-");
       }
 
-      if (this.current_char === '*') {
+      if (this.current_char === "*") {
         this.advance();
-        return new Token(MUL, '*');
+        return new Token(MUL, "*");
       }
 
-      if (this.current_char === '/') {
+      if (this.current_char === "/") {
         this.advance();
-        return new Token(FLOAT_DIV, '/');
+        return new Token(FLOAT_DIV, "/");
       }
 
-      if (this.current_char === '(') {
+      if (this.current_char === "(") {
         this.advance();
-        return new Token(LPAREN, '(');
+        return new Token(LPAREN, "(");
       }
 
-      if (this.current_char === ')') {
+      if (this.current_char === ")") {
         this.advance();
-        return new Token(RPAREN, ')');
+        return new Token(RPAREN, ")");
       }
-      if (this.current_char === '.') {
+      if (this.current_char === ".") {
         this.advance();
-        return new Token(DOT, '.');
+        return new Token(DOT, ".");
       }
 
       this.error();
@@ -341,22 +340,22 @@ class Lexer {
 
   number() {
     // 循环查找字符之到碰到一个不是整数字符位置。合并查找到的字符并返回一个整数数字；
-    let result = '';
+    let result = "";
     let token;
     while (this.current_char !== null && isDigit(this.current_char)) {
       result += this.current_char;
       this.advance();
     }
-    if (this.current_char === '.') {
+    if (this.current_char === ".") {
       result += this.current_char;
       this.advance();
       while (this.current_char !== null && isDigit(this.current_char)) {
         result += this.current_char;
         this.advance();
       }
-      token = new Token('REAL_CONST', Number(result));
+      token = new Token("REAL_CONST", Number(result));
     } else {
-      token = new Token('INTEGER_CONST', Number(result));
+      token = new Token("INTEGER_CONST", Number(result));
     }
     return token;
   }
@@ -370,7 +369,7 @@ class Parser {
   }
 
   error() {
-    throw 'SyntaxError: invalid syntax';
+    throw "SyntaxError: invalid syntax";
   }
 
   eat(token_type) {
@@ -431,8 +430,43 @@ class Parser {
     return new Block(declarations, compound_statement);
   }
 
+  formal_parameter_list() {
+    // formal_parameter_list: formal_parameters | formal_parameters SEMI formal_parameter_list
+    if(this.current_token.type !== ID) {
+      return [];
+    }
+    const declarations = this.formal_parameters();
+
+    while (this.current_token.type === SEMI) {
+      this.eat(SEMI);
+      declarations.push(...this.formal_parameters())
+    }
+
+    return declarations;
+  }
+
+  formal_parameters() {
+    // formal_parameters : ID (COMMA ID)* COLON type_spec
+    const var_nodes = [new Var(this.current_token)];
+    this.eat(ID);
+    while (this.current_token.type === COMMA) {
+      this.eat(COMMA);
+      var_nodes.push(new Var(this.current_token));
+      this.eat(ID);
+    }
+    this.eat(COLON);
+    const type_node = this.type_spec();
+
+    const var_declarations = [];
+    var_nodes.forEach(item =>
+      var_declarations.push(new Param(item, type_node))
+    );
+
+    return var_declarations;
+  }
+
   declarations() {
-    // declarations: VAR (variable_declaration  SEMT) + | (PROCEDUER ID SEMI block SEMI)* |  empty
+    // declarations: (VAR (variable_declaration  SEMT)+)*  | (PROCEDUER ID (LPAREN  formal_parameter_list RPAREN)? SEMI block SEMI)* |  empty
     const declarations = [];
     if (this.current_token.type === VAR) {
       this.eat(VAR);
@@ -444,15 +478,22 @@ class Parser {
       }
     }
 
-    while(this.current_token.type === PROCEDURE) {
+
+    while (this.current_token.type === PROCEDURE) {
       this.eat(PROCEDURE);
       const proc_name = this.current_token.value;
       this.eat(ID);
+      let params = [];
+      if (this.current_token.type === LPAREN) {
+        this.eat(LPAREN);
+        params = this.formal_parameter_list();
+        this.eat(RPAREN);
+      }
       this.eat(SEMI);
       const block_node = this.block();
-      const proc_decl = new ProcedureDecl(proc_name, block_node);
+      const proc_decl = new ProcedureDecl(proc_name, block_node, params);
       declarations.push(proc_decl);
-      this.eat(SEMI)
+      this.eat(SEMI);
     }
 
     return declarations;
@@ -461,6 +502,7 @@ class Parser {
   variable_declaration() {
     // variable_declaration : ID (COMMA ID)* COLON type_spec
     let var_nodes = [new Var(this.current_token)];
+    console.log(this.current_token);
     this.eat(ID);
 
     while (this.current_token.type === COMMA) {
@@ -621,14 +663,14 @@ class NodeVisitor {
   }
 }
 
-/** SymbolTableBuilder 
+/** SymbolTableBuilder
  * 遍历由Parser自动创建保存程序相关的符号；
-*/
+ */
 
 class SymbolTableBuilder extends NodeVisitor {
   constructor() {
     super();
-    this.symtab = new ScopedSymbolTable('globle',1);
+    this.symtab = new ScopedSymbolTable("globle", 1);
   }
 
   visit_Program(node) {
@@ -648,9 +690,7 @@ class SymbolTableBuilder extends NodeVisitor {
     }
   }
 
-  visit_ProcedureDecl(){
-
-  }
+  visit_ProcedureDecl() {}
 
   visit_BinOp(node) {
     this.visit(node.left);
@@ -664,18 +704,17 @@ class SymbolTableBuilder extends NodeVisitor {
   visit_Assign(node) {
     const var_name = node.left.value;
     const symbol = this.symtab.lookup(var_name);
-    if(!symbol) {
-      throw new SyntaxError(`${var_name} is not declaration `)
+    if (!symbol) {
+      throw new SyntaxError(`${var_name} is not declaration `);
     }
     this.visit(node.right);
   }
   visit_Var(node) {
     const var_name = node.value;
     const symbol = this.symtab.lookup(var_name);
-    if(!symbol) {
-      throw new ReferenceError(`${var_name} is not defined`)
+    if (!symbol) {
+      throw new ReferenceError(`${var_name} is not defined`);
     }
-
   }
 
   visit_NoOp(node) {}
@@ -685,7 +724,7 @@ class SymbolTableBuilder extends NodeVisitor {
     const typeName = node.type_node.value;
     const typeSymbol = this.symtab.lookup(typeName);
     const varName = node.var_node.value;
-    const varSymbol = new VarSymbol(varName,typeSymbol);
+    const varSymbol = new VarSymbol(varName, typeSymbol);
     this.symtab.defineSymbol(varSymbol);
   }
 }
@@ -719,10 +758,8 @@ class Interpreter extends NodeVisitor {
   visit_Program(node) {
     this.visit(node.block);
   }
-  
-  visit_ProcedureDecl(node) {
-    
-  }
+
+  visit_ProcedureDecl(node) {}
 
   visit_Block(node) {
     for (let decl of node.declarations) {
@@ -764,30 +801,35 @@ class Interpreter extends NodeVisitor {
 
   interpret() {
     let tree = this.parser.parse();
-    console.log(tree)
+    console.log(tree);
     let symtabBuiler = new SymbolTableBuilder();
-      symtabBuiler.visit(tree);
-      console.log(symtabBuiler.symtab)
+    symtabBuiler.visit(tree);
+    console.log(symtabBuiler.symtab);
     return this.visit(tree);
   }
 }
 const main = () => {
   const lexer = new Lexer(`
-    PROGRAM Part10AST;
-      VAR
-         a : INTEGER;
-         b : INTEGER;
-      BEGIN {Part10AST}
-          a := -2+(1+(2-1))*2;
-          b := a*3;
-      END.  {Part10AST}
+  PROGRAM Part10AST;
+  VAR
+    a, b : INTEGER;
+    y    : REAL;
+    PROCEDURE p1(a,b:INTEGER;c:REAL);
+    VAR
+      age : INTEGER;
+    BEGIN
+      dd := ss;
+    END;     
+  BEGIN {Part10AST}
+      a := -2+(1+(2-1))*2;
+      b := a*3;
+  END.  {Part10AST}
   `);
 
   let parse = new Parser(lexer);
   let interpret = new Interpreter(parse);
-  interpret.interpret()
-  console.log(interpret.GLOBAL_SCOPE)
-
+  interpret.interpret();
+  console.log(interpret.GLOBAL_SCOPE);
 };
 main();
 debugger;

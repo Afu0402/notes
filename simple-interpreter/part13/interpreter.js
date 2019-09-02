@@ -775,10 +775,6 @@ const main = () => {
   const lexer = new Lexer(`
     PROGRAM Part10AST;
       VAR
-<<<<<<< HEAD
-         a : INTEGER;
-         b : INTEGER;
-=======
         a, b : INTEGER;
         y    : REAL;
         PROCEDURE p1;
@@ -787,7 +783,6 @@ const main = () => {
         BEGIN
           dd := ss;
         END;     
->>>>>>> 50dd85068b8d1691df33782e17dd7ffe0521f870
       BEGIN {Part10AST}
           a := -2+(1+(2-1))*2;
           b := a*3;
