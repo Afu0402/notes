@@ -139,10 +139,11 @@ class VarSymbol extends Symbol {
 }
 
 class ScopedSymbolTable {
-  constructor(scopeName, scopeLevel) {
+  constructor(scopeName, scopeLevel,enclosingScope = null) {
     this.scopeName = scopeName;
     this.scopeLevel = scopeLevel;
     this._symbols = {};
+    this.enclosingScope = enclosingScope;
     this._initBuitinType();
   }
 
@@ -156,6 +157,11 @@ class ScopedSymbolTable {
   }
 
   lookup(name) {
+    console.log(`at scope:${this.scopeName} search: ${name}`)
+    const symbol = this._symbols[name];
+    if(!symbol && this.enclosingScope) {
+      return this.enclosingScope.lookup(name);
+    } 
     return this._symbols[name];
   }
 }
@@ -676,15 +682,17 @@ class NodeVisitor {
 class SemanticAnalyzer extends NodeVisitor {
   constructor() {
     super();
-    // this.scope = new ScopedSymbolTable("globle", 1);
+    this.current_scope = null;
   }
 
   visit_Program(node) {
     console.log('enter: global')
-    const globalScope = new ScopedSymbolTable("globle", 1);
+    const globalScope = new ScopedSymbolTable("globle", 1, this.current_scope);
     this.current_scope = globalScope;
     this.visit(node.block);
     console.log('leave: global')
+    this.current_scope = this.current_scope.enclosingScope;
+    console.log(globalScope)
 
   }
 
@@ -701,7 +709,31 @@ class SemanticAnalyzer extends NodeVisitor {
     }
   }
 
-  visit_ProcedureDecl() {}
+  visit_ProcedureDecl(node) {
+    const proc_name = node.proc_name;
+    const proc_symbol = new ProcedureSymbol(proc_name);
+    this.current_scope.insert(proc_symbol);
+
+    console.log(`enter scope: ${proc_name}`)
+
+    const procedureScope = new ScopedSymbolTable(proc_name,2,this.current_scope);
+    this.current_scope = procedureScope;
+    for(let param of node.params) {
+      let param_type = this.current_scope.lookup(param.type_node.value);
+      let param_name = param.var_node.value;
+      let var_symbol = new VarSymbol(param_name,param_type);
+      this.current_scope.insert(var_symbol);
+      proc_symbol.params.push(var_symbol);
+    }
+    this.visit(node.block_node);
+    console.log(procedureScope);
+    this.current_scope = this.current_scope.enclosingScope
+    console.log('leading procedure scope')
+
+
+
+
+  }
 
   visit_BinOp(node) {
     this.visit(node.left);
@@ -714,7 +746,7 @@ class SemanticAnalyzer extends NodeVisitor {
 
   visit_Assign(node) {
     const var_name = node.left.value;
-    const symbol = this.scope.lookup(var_name);
+    const symbol = this.current_scope.lookup(var_name);
     if (!symbol) {
       throw new SyntaxError(`${var_name} is not declaration `);
     }
@@ -722,7 +754,7 @@ class SemanticAnalyzer extends NodeVisitor {
   }
   visit_Var(node) {
     const var_name = node.value;
-    const symbol = this.scope.lookup(var_name);
+    const symbol = this.current_scope.lookup(var_name);
     if (!symbol) {
       throw new ReferenceError(`${var_name} is not defined`);
     }
@@ -733,10 +765,10 @@ class SemanticAnalyzer extends NodeVisitor {
 
   visit_VarDecl(node) {
     const typeName = node.type_node.value;
-    const typeSymbol = this.scope.lookup(typeName);
+    const typeSymbol = this.current_scope.lookup(typeName);
     const varName = node.var_node.value;
     const varSymbol = new VarSymbol(varName, typeSymbol);
-    this.scope.insert(varSymbol);
+    this.current_scope.insert(varSymbol);
   }
 }
 
@@ -770,7 +802,11 @@ class Interpreter extends NodeVisitor {
     this.visit(node.block);
   }
 
-  visit_ProcedureDecl(node) {}
+  visit_ProcedureDecl(node) {
+    
+
+  }
+
 
   visit_Block(node) {
     for (let decl of node.declarations) {
@@ -812,35 +848,31 @@ class Interpreter extends NodeVisitor {
 
   interpret() {
     let tree = this.parser.parse();
-    console.log(tree);
+
     let semanticAnalyzer = new SemanticAnalyzer();
     semanticAnalyzer.visit(tree);
-    console.log(semanticAnalyzer.scope);
     return this.visit(tree);
   }
 }
 const main = () => {
   const lexer = new Lexer(`
   PROGRAM Part10AST;
-  VAR
-    a, b : INTEGER;
-    y    : REAL;
-    PROCEDURE p1(a,b:INTEGER;c:REAL);
-    VAR
-      age : INTEGER;
+  VAR x, y : REAL;
+
+    PROCEDURE Alpha(a:INTEGER);
+     VAR y : INTEGER;
     BEGIN
-      dd := ss;
-    END;     
-  BEGIN {Part10AST}
-      a := -2+(1+(2-1))*2;
-      b := a*3;
+    x := y + a;
+    END; 
+   
+  BEGIN
   END.  {Part10AST}
   `);
 
   let parse = new Parser(lexer);
   let interpret = new Interpreter(parse);
   interpret.interpret();
-  console.log(interpret.GLOBAL_SCOPE);
+  console.log(interpret.GLOBAL_SCOPE)
 };
 main();
 debugger;
