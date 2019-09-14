@@ -119,6 +119,13 @@ class Symbol {
   }
 }
 
+class ProcedureSymbol extends Symbol {
+  constructor(name,params = []) {
+    super(name);
+    this.params = params;
+  }
+}
+
 class BuiltinTypeSymbol extends Symbol {
   constructor(name) {
     super(name);
@@ -140,11 +147,11 @@ class ScopedSymbolTable {
   }
 
   _initBuitinType() {
-    this.defineSymbol(new BuiltinTypeSymbol("INTEGER"));
-    this.defineSymbol(new BuiltinTypeSymbol("REAL"));
+    this.insert(new BuiltinTypeSymbol("INTEGER"));
+    this.insert(new BuiltinTypeSymbol("REAL"));
   }
 
-  defineSymbol(obj) {
+  insert(obj) {
     this._symbols[obj.name] = obj;
   }
 
@@ -502,7 +509,6 @@ class Parser {
   variable_declaration() {
     // variable_declaration : ID (COMMA ID)* COLON type_spec
     let var_nodes = [new Var(this.current_token)];
-    console.log(this.current_token);
     this.eat(ID);
 
     while (this.current_token.type === COMMA) {
@@ -663,18 +669,23 @@ class NodeVisitor {
   }
 }
 
-/** SymbolTableBuilder
+/** SemanticAnalyzer
  * 遍历由Parser自动创建保存程序相关的符号；
  */
 
-class SymbolTableBuilder extends NodeVisitor {
+class SemanticAnalyzer extends NodeVisitor {
   constructor() {
     super();
-    this.symtab = new ScopedSymbolTable("globle", 1);
+    // this.scope = new ScopedSymbolTable("globle", 1);
   }
 
   visit_Program(node) {
+    console.log('enter: global')
+    const globalScope = new ScopedSymbolTable("globle", 1);
+    this.current_scope = globalScope;
     this.visit(node.block);
+    console.log('leave: global')
+
   }
 
   visit_Block(node) {
@@ -703,7 +714,7 @@ class SymbolTableBuilder extends NodeVisitor {
 
   visit_Assign(node) {
     const var_name = node.left.value;
-    const symbol = this.symtab.lookup(var_name);
+    const symbol = this.scope.lookup(var_name);
     if (!symbol) {
       throw new SyntaxError(`${var_name} is not declaration `);
     }
@@ -711,7 +722,7 @@ class SymbolTableBuilder extends NodeVisitor {
   }
   visit_Var(node) {
     const var_name = node.value;
-    const symbol = this.symtab.lookup(var_name);
+    const symbol = this.scope.lookup(var_name);
     if (!symbol) {
       throw new ReferenceError(`${var_name} is not defined`);
     }
@@ -722,10 +733,10 @@ class SymbolTableBuilder extends NodeVisitor {
 
   visit_VarDecl(node) {
     const typeName = node.type_node.value;
-    const typeSymbol = this.symtab.lookup(typeName);
+    const typeSymbol = this.scope.lookup(typeName);
     const varName = node.var_node.value;
     const varSymbol = new VarSymbol(varName, typeSymbol);
-    this.symtab.defineSymbol(varSymbol);
+    this.scope.insert(varSymbol);
   }
 }
 
@@ -802,9 +813,9 @@ class Interpreter extends NodeVisitor {
   interpret() {
     let tree = this.parser.parse();
     console.log(tree);
-    let symtabBuiler = new SymbolTableBuilder();
-    symtabBuiler.visit(tree);
-    console.log(symtabBuiler.symtab);
+    let semanticAnalyzer = new SemanticAnalyzer();
+    semanticAnalyzer.visit(tree);
+    console.log(semanticAnalyzer.scope);
     return this.visit(tree);
   }
 }
