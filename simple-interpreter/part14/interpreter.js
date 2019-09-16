@@ -144,7 +144,9 @@ class ScopedSymbolTable {
     this.scopeLevel = scopeLevel;
     this._symbols = {};
     this.enclosingScope = enclosingScope;
-    this._initBuitinType();
+    if(scopeLevel === 0) {
+      this._initBuitinType();
+    }
   }
 
   _initBuitinType() {
@@ -682,7 +684,7 @@ class NodeVisitor {
 class SemanticAnalyzer extends NodeVisitor {
   constructor() {
     super();
-    this.current_scope = null;
+    this.current_scope = new ScopedSymbolTable("zero", 0, null);
   }
 
   visit_Program(node) {
@@ -716,7 +718,7 @@ class SemanticAnalyzer extends NodeVisitor {
 
     console.log(`enter scope: ${proc_name}`)
 
-    const procedureScope = new ScopedSymbolTable(proc_name,2,this.current_scope);
+    const procedureScope = new ScopedSymbolTable(proc_name,this.current_scope.scopeLevel + 1,this.current_scope);
     this.current_scope = procedureScope;
     for(let param of node.params) {
       let param_type = this.current_scope.lookup(param.type_node.value);
@@ -728,7 +730,7 @@ class SemanticAnalyzer extends NodeVisitor {
     this.visit(node.block_node);
     console.log(procedureScope);
     this.current_scope = this.current_scope.enclosingScope
-    console.log('leading procedure scope')
+    console.log(`leading scope: ${proc_name}`)
 
 
 
@@ -862,7 +864,7 @@ const main = () => {
     PROCEDURE Alpha(a:INTEGER);
      VAR y : INTEGER;
     BEGIN
-    x := y + a;
+    x := y + a ;
     END; 
    
   BEGIN
