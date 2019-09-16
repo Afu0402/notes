@@ -156,13 +156,18 @@ class ScopedSymbolTable {
     this._symbols[obj.name] = obj;
   }
 
-  lookup(name) {
+  lookup(name,currentScopeOnly=false) {
     console.log(`at scope:${this.scopeName} search: ${name}`)
     const symbol = this._symbols[name];
-    if(!symbol && this.enclosingScope) {
+    if(symbol) {
+      return symbol;
+    }
+    if(currentScopeOnly) {
+      return null
+    }
+    if(this.enclosingScope) {
       return this.enclosingScope.lookup(name);
     } 
-    return this._symbols[name];
   }
 }
 
@@ -481,7 +486,7 @@ class Parser {
   declarations() {
     // declarations: (VAR (variable_declaration  SEMT)+)*  | (PROCEDUER ID (LPAREN  formal_parameter_list RPAREN)? SEMI block SEMI)* |  empty
     const declarations = [];
-    if (this.current_token.type === VAR) {
+    while (this.current_token.type === VAR) {
       this.eat(VAR);
 
       while (this.current_token.type === ID) {
@@ -729,10 +734,6 @@ class SemanticAnalyzer extends NodeVisitor {
     console.log(procedureScope);
     this.current_scope = this.current_scope.enclosingScope
     console.log('leading procedure scope')
-
-
-
-
   }
 
   visit_BinOp(node) {
@@ -767,6 +768,9 @@ class SemanticAnalyzer extends NodeVisitor {
     const typeName = node.type_node.value;
     const typeSymbol = this.current_scope.lookup(typeName);
     const varName = node.var_node.value;
+    if( this.current_scope.lookup(varName,true)) {
+      throw new SyntaxError(`Error: Duplicate identifier: ${varName}`);
+    }
     const varSymbol = new VarSymbol(varName, typeSymbol);
     this.current_scope.insert(varSymbol);
   }
@@ -848,7 +852,6 @@ class Interpreter extends NodeVisitor {
 
   interpret() {
     let tree = this.parser.parse();
-
     let semanticAnalyzer = new SemanticAnalyzer();
     semanticAnalyzer.visit(tree);
     return this.visit(tree);
@@ -858,7 +861,6 @@ const main = () => {
   const lexer = new Lexer(`
   PROGRAM Part10AST;
   VAR x, y : REAL;
-
     PROCEDURE Alpha(a:INTEGER);
      VAR y : INTEGER;
     BEGIN
