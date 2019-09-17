@@ -86,9 +86,11 @@ function isalnum(str) { //判断一个字符是不是英文字母或者数字；
 }
 
 class Token {
-  constructor(type, value) {
+  constructor(type, value,lineno,column) {
     this.type = type;
     this.value = value;
+    this.lineno = lineno;
+    this.column = column;
   }
 
   toString() {

@@ -21,6 +21,34 @@ const INTEGER_CONST = "INTEGER_CONST";
 const REAL_CONST = "REAL_CONST";
 const INTEGER_DIV = "INTEGER_DIV";
 const PROCEDURE = "PROCEDURE";
+const UNEXPECTED_TOKEN = "Unexpected token";
+const ID_NOT_FOUND = "Identifier not found";
+const DUPLICATE_ID = "Duplicate id found";
+
+/** Error */
+class Error {
+  constructor(errorCode, token, message) {
+    this.errorCode = errorCode;
+    this.token = token;
+    this.message = `${this.constructor.name}:${message}`;
+  }
+}
+
+class LexerError extends Error {
+  constructor(errorCode, token, message) {
+    super(errorCode, token, message);
+  }
+}
+class ParserError extends Error {
+  constructor(errorCode, token, message) {
+    super(errorCode, token, message);
+  }
+}
+class SemanticError extends Error {
+  constructor(errorCode, token, message) {
+    super(errorCode, token, message);
+  }
+}
 
 /** AST node */
 class AST {
@@ -111,6 +139,7 @@ class Num {
     this.value = token.value;
   }
 }
+
 /** Symbole */
 class Symbol {
   constructor(name, type = null) {
@@ -120,7 +149,7 @@ class Symbol {
 }
 
 class ProcedureSymbol extends Symbol {
-  constructor(name,params = []) {
+  constructor(name, params = []) {
     super(name);
     this.params = params;
   }
@@ -139,12 +168,12 @@ class VarSymbol extends Symbol {
 }
 
 class ScopedSymbolTable {
-  constructor(scopeName, scopeLevel,enclosingScope = null) {
+  constructor(scopeName, scopeLevel, enclosingScope = null) {
     this.scopeName = scopeName;
     this.scopeLevel = scopeLevel;
     this._symbols = {};
     this.enclosingScope = enclosingScope;
-    if(scopeLevel === 0) {
+    if (scopeLevel === 0) {
       this._initBuitinType();
     }
   }
@@ -158,18 +187,18 @@ class ScopedSymbolTable {
     this._symbols[obj.name] = obj;
   }
 
-  lookup(name,currentScopeOnly=false) {
-    console.log(`at scope:${this.scopeName} search: ${name}`)
+  lookup(name, currentScopeOnly = false) {
+    console.log(`at scope:${this.scopeName} search: ${name}`);
     const symbol = this._symbols[name];
-    if(symbol) {
+    if (symbol) {
       return symbol;
     }
-    if(currentScopeOnly) {
-      return null
+    if (currentScopeOnly) {
+      return null;
     }
-    if(this.enclosingScope) {
+    if (this.enclosingScope) {
       return this.enclosingScope.lookup(name);
-    } 
+    }
   }
 }
 
@@ -226,19 +255,27 @@ class Lexer {
     this.text = text;
     this.pos = 0; // 当前字符的位置；
     this.current_char = this.text[this.pos];
+    this.lineno = 1;
+    this.column = 1;
   }
 
   error() {
-    throw "SyntaxError: invalid syntax";
+    let s = `Lexer error on ${this.current_char} line:${this.lineno} column:${this.column}`;
+    throw new LexerError(null, null, s);
   }
 
   advance() {
     //向前移动指针并更新 current_char字符；
+    if (this.current_char == "\n") {
+      this.lineno += 1;
+      this.column = 0;
+    }
     this.pos += 1;
     if (this.pos > this.text.length - 1) {
       this.current_char = null;
     } else {
       this.current_char = this.text[this.pos];
+      this.column = 0;
     }
   }
 
@@ -388,8 +425,8 @@ class Parser {
     this.current_token = this.lexer.get_next_token();
   }
 
-  error() {
-    throw "SyntaxError: invalid syntax";
+  error(errorCode, token) {
+    throw new ParserError(errorCode, token, `${errorCode} -> ${token}`);
   }
 
   eat(token_type) {
@@ -397,7 +434,7 @@ class Parser {
     if (this.current_token.type === token_type) {
       this.current_token = this.lexer.get_next_token();
     } else {
-      this.error();
+      this.error(UNEXPECTED_TOKEN, this.current_token);
     }
   }
 
@@ -452,14 +489,14 @@ class Parser {
 
   formal_parameter_list() {
     // formal_parameter_list: formal_parameters | formal_parameters SEMI formal_parameter_list
-    if(this.current_token.type !== ID) {
+    if (this.current_token.type !== ID) {
       return [];
     }
     const declarations = this.formal_parameters();
 
     while (this.current_token.type === SEMI) {
       this.eat(SEMI);
-      declarations.push(...this.formal_parameters())
+      declarations.push(...this.formal_parameters());
     }
 
     return declarations;
@@ -486,7 +523,7 @@ class Parser {
   }
 
   declarations() {
-    // declarations: (VAR (variable_declaration  SEMT)+)*  | (PROCEDUER ID (LPAREN  formal_parameter_list RPAREN)? SEMI block SEMI)* |  empty
+    // declarations: (VAR (variable_declaration SEMI)+)? procedure_declaration*
     const declarations = [];
     while (this.current_token.type === VAR) {
       this.eat(VAR);
@@ -498,25 +535,29 @@ class Parser {
       }
     }
 
-
     while (this.current_token.type === PROCEDURE) {
-      this.eat(PROCEDURE);
-      const proc_name = this.current_token.value;
-      this.eat(ID);
-      let params = [];
-      if (this.current_token.type === LPAREN) {
-        this.eat(LPAREN);
-        params = this.formal_parameter_list();
-        this.eat(RPAREN);
-      }
-      this.eat(SEMI);
-      const block_node = this.block();
-      const proc_decl = new ProcedureDecl(proc_name, block_node, params);
+      const proc_decl = this.procedure_declaration();
       declarations.push(proc_decl);
-      this.eat(SEMI);
     }
 
     return declarations;
+  }
+
+  procedure_declaration() {
+    this.eat(PROCEDURE);
+    const proc_name = this.current_token.value;
+    this.eat(ID);
+    let params = [];
+    if (this.current_token.type === LPAREN) {
+      this.eat(LPAREN);
+      params = this.formal_parameter_list();
+      this.eat(RPAREN);
+    }
+    this.eat(SEMI);
+    const block_node = this.block();
+    const proc_decl = new ProcedureDecl(proc_name, block_node, params);
+    this.eat(SEMI);
+    return proc_decl;
   }
 
   variable_declaration() {
@@ -673,7 +714,14 @@ class Parser {
   }
 }
 
-
+/** Visitor */
+class NodeVisitor {
+  visit(node) {
+    // 获取node节点的构造函数名。这样之后只要在子类添加 visit_开头+对应的node类名的方法就可以了。子类只需要调用visit就能自动判断应该调用哪个对应的visit_Node方法
+    const method_name = `visit_${node.constructor.name}`;
+    return this[method_name](node);
+  }
+}
 
 /** SemanticAnalyzer
  * 遍历由Parser自动创建保存程序相关的符号；
@@ -686,14 +734,13 @@ class SemanticAnalyzer extends NodeVisitor {
   }
 
   visit_Program(node) {
-    console.log('enter: global')
+    console.log("enter: global");
     const globalScope = new ScopedSymbolTable("globle", 1, this.current_scope);
     this.current_scope = globalScope;
     this.visit(node.block);
-    console.log('leave: global')
+    console.log("leave: global");
     this.current_scope = this.current_scope.enclosingScope;
-    console.log(globalScope)
-
+    console.log(globalScope);
   }
 
   visit_Block(node) {
@@ -714,25 +761,25 @@ class SemanticAnalyzer extends NodeVisitor {
     const proc_symbol = new ProcedureSymbol(proc_name);
     this.current_scope.insert(proc_symbol);
 
-    console.log(`enter scope: ${proc_name}`)
+    console.log(`enter scope: ${proc_name}`);
 
-    const procedureScope = new ScopedSymbolTable(proc_name,this.current_scope.scopeLevel + 1,this.current_scope);
+    const procedureScope = new ScopedSymbolTable(
+      proc_name,
+      this.current_scope.scopeLevel + 1,
+      this.current_scope
+    );
     this.current_scope = procedureScope;
-    for(let param of node.params) {
+    for (let param of node.params) {
       let param_type = this.current_scope.lookup(param.type_node.value);
       let param_name = param.var_node.value;
-      let var_symbol = new VarSymbol(param_name,param_type);
+      let var_symbol = new VarSymbol(param_name, param_type);
       this.current_scope.insert(var_symbol);
       proc_symbol.params.push(var_symbol);
     }
     this.visit(node.block_node);
     console.log(procedureScope);
-    this.current_scope = this.current_scope.enclosingScope
-    console.log(`leading scope: ${proc_name}`)
-
-
-
-
+    this.current_scope = this.current_scope.enclosingScope;
+    console.log(`leading scope: ${proc_name}`);
   }
 
   visit_BinOp(node) {
@@ -767,7 +814,7 @@ class SemanticAnalyzer extends NodeVisitor {
     const typeName = node.type_node.value;
     const typeSymbol = this.current_scope.lookup(typeName);
     const varName = node.var_node.value;
-    if( this.current_scope.lookup(varName,true)) {
+    if (this.current_scope.lookup(varName, true)) {
       throw new SyntaxError(`Error: Duplicate identifier: ${varName}`);
     }
     const varSymbol = new VarSymbol(varName, typeSymbol);
@@ -805,11 +852,7 @@ class Interpreter extends NodeVisitor {
     this.visit(node.block);
   }
 
-  visit_ProcedureDecl(node) {
-    
-
-  }
-
+  visit_ProcedureDecl(node) {}
 
   visit_Block(node) {
     for (let decl of node.declarations) {
@@ -873,7 +916,7 @@ const main = () => {
   let parse = new Parser(lexer);
   let interpret = new Interpreter(parse);
   interpret.interpret();
-  console.log(interpret.GLOBAL_SCOPE)
+  console.log(interpret.GLOBAL_SCOPE);
 };
 main();
 debugger;
