@@ -114,6 +114,9 @@ class Var {
     this.token = token;
     this.value = token.value;
   }
+  toString(){
+    return `${this.value}`
+  }
 }
 
 class NoOp {}
@@ -426,7 +429,7 @@ class Parser {
   }
 
   error(errorCode, token) {
-    throw new ParserError(errorCode, token, `${errorCode} -> ${token}`);
+    throw new ParserError(errorCode, token, `${errorCode} -> ${token}`).message;
   }
 
   eat(token_type) {
@@ -733,6 +736,10 @@ class SemanticAnalyzer extends NodeVisitor {
     this.current_scope = new ScopedSymbolTable("zero", 0, null);
   }
 
+  error(errorCode,token) {
+    throw new SemanticError(errorCode,token,`${errorCode} -> ${token}`).message;
+  }
+
   visit_Program(node) {
     console.log("enter: global");
     const globalScope = new ScopedSymbolTable("globle", 1, this.current_scope);
@@ -803,7 +810,7 @@ class SemanticAnalyzer extends NodeVisitor {
     const var_name = node.value;
     const symbol = this.current_scope.lookup(var_name);
     if (!symbol) {
-      throw new ReferenceError(`${var_name} is not defined`);
+      this.error(ID_NOT_FOUND,node.token);
     }
   }
 
@@ -815,7 +822,7 @@ class SemanticAnalyzer extends NodeVisitor {
     const typeSymbol = this.current_scope.lookup(typeName);
     const varName = node.var_node.value;
     if (this.current_scope.lookup(varName, true)) {
-      throw new SyntaxError(`Error: Duplicate identifier: ${varName}`);
+      this.error(DUPLICATE_ID,node.var_node)
     }
     const varSymbol = new VarSymbol(varName, typeSymbol);
     this.current_scope.insert(varSymbol);
@@ -906,7 +913,7 @@ const main = () => {
     PROCEDURE Alpha(a:INTEGER);
      VAR y : INTEGER;
     BEGIN
-    x := y + a ;
+    x := y + b ;
     END; 
    
   BEGIN
