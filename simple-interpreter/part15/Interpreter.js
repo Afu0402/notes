@@ -95,6 +95,14 @@ class Param {
   }
 }
 
+class ProcedureCall {
+  constructor(proc_name, actual_params, token) {
+    this.proc_name = proc_name;
+    this.actual_params = actual_params;
+    this.token = token;
+  }
+}
+
 class ProcedureDecl {
   constructor(proc_name, block_node, params = null) {
     this.proc_name = proc_name;
@@ -114,8 +122,8 @@ class Var {
     this.token = token;
     this.value = token.value;
   }
-  toString(){
-    return `${this.value}`
+  toString() {
+    return `${this.value}`;
   }
 }
 
@@ -143,7 +151,26 @@ class Num {
   }
 }
 
-/** Symbole */
+/** Token */
+
+class Token {
+  constructor(type, value) {
+    this.type = type;
+    this.value = value;
+  }
+
+  toString() {
+    return `Token${this.type},${this.value}`;
+  }
+  repr() {
+    return this.str();
+  }
+}
+
+/** Symbole
+ *  收集储存程序中变量实体的相关信息；
+ *
+ */
 class Symbol {
   constructor(name, type = null) {
     this.name = name;
@@ -170,6 +197,11 @@ class VarSymbol extends Symbol {
   }
 }
 
+/**
+ * ScopedSymbolTable
+ *  用来储存和追踪各种symbol信息，
+ *
+ */
 class ScopedSymbolTable {
   constructor(scopeName, scopeLevel, enclosingScope = null) {
     this.scopeName = scopeName;
@@ -225,20 +257,6 @@ function isalnum(str) {
   return reg.test(str);
 }
 
-class Token {
-  constructor(type, value) {
-    this.type = type;
-    this.value = value;
-  }
-
-  toString() {
-    return `Token${this.type},${this.value}`;
-  }
-  repr() {
-    return this.str();
-  }
-}
-
 const reserved_keywords = {
   //保留字对象集合
   BEGIN: new Token(BEGIN, "BEGIN"),
@@ -251,7 +269,10 @@ const reserved_keywords = {
   PROCEDURE: new Token("PROCEDURE", "PROCEDURE")
 };
 
-/** lexical analysis */
+/** lexical analysis
+ *  词法分析，通过将输入分解成一个个有意义的标识符token。
+ *
+ */
 
 class Lexer {
   constructor(text) {
@@ -264,7 +285,7 @@ class Lexer {
 
   error() {
     let s = `Lexer error on ${this.current_char} line:${this.lineno} column:${this.column}`;
-    throw new LexerError(null, null, s);
+    throw new LexerError(null, null, s).message;
   }
 
   advance() {
@@ -421,7 +442,11 @@ class Lexer {
   }
 }
 
-/** Parser */
+/** Parser
+ *  根据lexer提供的token和相对应的语法规则组成一颗抽象的语法树；
+ *
+ *
+ */
 class Parser {
   constructor(lexer) {
     this.lexer = lexer;
@@ -438,35 +463,6 @@ class Parser {
       this.current_token = this.lexer.get_next_token();
     } else {
       this.error(UNEXPECTED_TOKEN, this.current_token);
-    }
-  }
-
-  factor() {
-    // factor : PLUS factor | MINUS factor| INTEGER_CONST| REAL_CONST | LPAREN expr RPAREN| variable
-    const token = this.current_token;
-    if (token.type === PLUS) {
-      //返回一元+的操作数 token
-      this.eat(PLUS);
-      return new UnaryOp(token, this.factor());
-    } else if (token.type === MINUS) {
-      //返回一元-的操作数 token
-      this.eat(MINUS);
-      return new UnaryOp(token, this.factor());
-    } else if (token.type === INTEGER_CONST) {
-      this.eat(INTEGER_CONST);
-      return new Num(token);
-    } else if (token.type === REAL_CONST) {
-      this.eat(REAL_CONST);
-      return new Num(token);
-    } else if (token.type === LPAREN) {
-      // LPAREN exper RPAREN
-      this.eat(LPAREN);
-      let node = this.expr();
-      this.eat(RPAREN);
-      return node;
-    } else {
-      // 返回一个ID token or reserved keywords
-      return this.variable();
     }
   }
 
@@ -488,6 +484,99 @@ class Parser {
     let declarations = this.declarations();
     let compound_statement = this.compound_statement();
     return new Block(declarations, compound_statement);
+  }
+  compound_statement() {
+    /**
+     * compund-statement: BEGIN statement-list END
+     * 解析复合语句
+     *
+     */
+    this.eat(BEGIN);
+    let nodes = this.statement_list();
+    this.eat(END);
+
+    let root = new Compound();
+    for (let node of nodes) {
+      root.children.push(node);
+    }
+
+    return root;
+  }
+
+  statement_list() {
+    /**
+     *
+     * statement-list: statement | statement SEMI statement
+     *
+     *
+     */
+    let node = this.statement();
+    let nodes = [node];
+    while (this.current_token.type === SEMI) {
+      this.eat(SEMI);
+      nodes.push(this.statement());
+    }
+
+    if (this.current_token.type === ID) {
+      this.error();
+    }
+
+    return nodes;
+  }
+
+  statement() {
+    //statement: compund-statement|proccall_statement | assginment-statement | empty
+    let node;
+    if (this.current_token.type === BEGIN) {
+      node = this.compound_statement();
+    } else if (
+      this.current_token.type === ID &&
+      this.lexer.current_char === "("
+    ) {
+      node = this.proccall_statement();
+    } else if (this.current_token.type === ID) {
+      node = this.assginment_statement();
+    } else {
+      node = this.empty();
+    }
+
+    return node;
+  }
+
+  proccall_statement() {
+    const token = this.current_token;
+    const proc_name = this.current_token.value;
+    this.eat(ID);
+    this.eat(LPAREN);
+    const actual_params = [];
+    if (this.current_token.type != RPAREN) {
+      const node = this.expr();
+      actual_params.push(node);
+    }
+
+    while (this.current_token.type === COMMA) {
+      this.eat(COMMA);
+      const node = this.expr();
+      actual_params.push(node);
+    }
+
+    this.eat(RPAREN);
+    return new ProcedureCall(proc_name, actual_params, token);
+  }
+
+  assginment_statement() {
+    // assginment: variable ASSGIN expr
+    let left = this.variable();
+    let token = this.current_token;
+    this.eat(ASSIGN);
+    let right = this.expr();
+    return new Assign(left, token, right);
+  }
+
+  variable() {
+    let node = new Var(this.current_token);
+    this.eat(ID);
+    return node;
   }
 
   formal_parameter_list() {
@@ -595,76 +684,56 @@ class Parser {
     return new Type(token);
   }
 
-  compound_statement() {
-    /**
-     * compund-statement: BEGIN statement-list END
-     * 解析复合语句
-     *
-     */
-    this.eat(BEGIN);
-    let nodes = this.statement_list();
-    this.eat(END);
-
-    let root = new Compound();
-    for (let node of nodes) {
-      root.children.push(node);
-    }
-
-    return root;
-  }
-
-  statement_list() {
-    /**
-     *
-     * statement-list: statement | statement SEMI statement
-     *
-     *
-     */
-    let node = this.statement();
-    let nodes = [node];
-    while (this.current_token.type === SEMI) {
-      this.eat(SEMI);
-      nodes.push(this.statement());
-    }
-
-    if (this.current_token.type === ID) {
-      this.error();
-    }
-
-    return nodes;
-  }
-
-  statement() {
-    //statement: compund-statement | assginment-statement | empty
-    let node;
-    if (this.current_token.type === BEGIN) {
-      node = this.compound_statement();
-    } else if (this.current_token.type === ID) {
-      node = this.assginment_statement();
-    } else {
-      node = this.empty();
-    }
-
-    return node;
-  }
-
-  assginment_statement() {
-    // assginment: variable ASSGIN expr
-    let left = this.variable();
-    let token = this.current_token;
-    this.eat(ASSIGN);
-    let right = this.expr();
-    return new Assign(left, token, right);
-  }
-
-  variable() {
-    let node = new Var(this.current_token);
-    this.eat(ID);
-    return node;
-  }
-
   empty() {
     return new NoOp();
+  }
+
+  expr() {
+    // expr: term (PLUS | MINUS) term
+    let node = this.term();
+
+    while ([MINUS, PLUS].includes(this.current_token.type)) {
+      let token = this.current_token;
+      if (token.type === MINUS) {
+        this.eat(MINUS);
+      }
+
+      if (token.type === PLUS) {
+        this.eat(PLUS);
+      }
+      node = new BinOp(node, token, this.term());
+    }
+
+    return node;
+  }
+
+  factor() {
+    // factor : PLUS factor | MINUS factor| INTEGER_CONST| REAL_CONST | LPAREN expr RPAREN| variable
+    const token = this.current_token;
+    if (token.type === PLUS) {
+      //返回一元+的操作数 token
+      this.eat(PLUS);
+      return new UnaryOp(token, this.factor());
+    } else if (token.type === MINUS) {
+      //返回一元-的操作数 token
+      this.eat(MINUS);
+      return new UnaryOp(token, this.factor());
+    } else if (token.type === INTEGER_CONST) {
+      this.eat(INTEGER_CONST);
+      return new Num(token);
+    } else if (token.type === REAL_CONST) {
+      this.eat(REAL_CONST);
+      return new Num(token);
+    } else if (token.type === LPAREN) {
+      // LPAREN exper RPAREN
+      this.eat(LPAREN);
+      let node = this.expr();
+      this.eat(RPAREN);
+      return node;
+    } else {
+      // 返回一个ID token or reserved keywords
+      return this.variable();
+    }
   }
 
   term() {
@@ -689,25 +758,6 @@ class Parser {
     return node;
   }
 
-  expr() {
-    // expr: term (PLUS | MINUS) term
-    let node = this.term();
-
-    while ([MINUS, PLUS].includes(this.current_token.type)) {
-      let token = this.current_token;
-      if (token.type === MINUS) {
-        this.eat(MINUS);
-      }
-
-      if (token.type === PLUS) {
-        this.eat(PLUS);
-      }
-      node = new BinOp(node, token, this.term());
-    }
-
-    return node;
-  }
-
   parse() {
     let node = this.program();
     if (this.current_token.type != EOF) {
@@ -727,7 +777,7 @@ class NodeVisitor {
 }
 
 /** SemanticAnalyzer
- * 遍历由Parser自动创建保存程序相关的符号；
+ * 遍历由Parser自动创建保存程序相关的符号，根据相关的符号检查程序的语义是否有错；
  */
 
 class SemanticAnalyzer extends NodeVisitor {
@@ -736,8 +786,9 @@ class SemanticAnalyzer extends NodeVisitor {
     this.current_scope = new ScopedSymbolTable("zero", 0, null);
   }
 
-  error(errorCode,token) {
-    throw new SemanticError(errorCode,token,`${errorCode} -> ${token}`).message;
+  error(errorCode, token) {
+    throw new SemanticError(errorCode, token, `${errorCode} -> ${token}`)
+      .message;
   }
 
   visit_Program(node) {
@@ -760,6 +811,12 @@ class SemanticAnalyzer extends NodeVisitor {
   visit_Compound(node) {
     for (let item of node.children) {
       this.visit(item);
+    }
+  }
+
+  visit_ProcedureCall(node) {
+    for (let paramNode of node.actual_params) {
+      this.visit(paramNode);
     }
   }
 
@@ -810,7 +867,7 @@ class SemanticAnalyzer extends NodeVisitor {
     const var_name = node.value;
     const symbol = this.current_scope.lookup(var_name);
     if (!symbol) {
-      this.error(ID_NOT_FOUND,node.token);
+      this.error(ID_NOT_FOUND, node.token);
     }
   }
 
@@ -822,14 +879,17 @@ class SemanticAnalyzer extends NodeVisitor {
     const typeSymbol = this.current_scope.lookup(typeName);
     const varName = node.var_node.value;
     if (this.current_scope.lookup(varName, true)) {
-      this.error(DUPLICATE_ID,node.var_node)
+      this.error(DUPLICATE_ID, node.var_node);
     }
     const varSymbol = new VarSymbol(varName, typeSymbol);
     this.current_scope.insert(varSymbol);
   }
 }
 
-/** Interpreter */
+/** Interpreter
+ *  求出程序中表达式和变量的值；
+ *
+ */
 class Interpreter extends NodeVisitor {
   constructor(parser) {
     super();
@@ -860,6 +920,7 @@ class Interpreter extends NodeVisitor {
   }
 
   visit_ProcedureDecl(node) {}
+  visit_ProcedureCall(node) {}
 
   visit_Block(node) {
     for (let decl of node.declarations) {
@@ -901,24 +962,28 @@ class Interpreter extends NodeVisitor {
 
   interpret() {
     let tree = this.parser.parse();
+    console.log(tree);
     let semanticAnalyzer = new SemanticAnalyzer();
     semanticAnalyzer.visit(tree);
     return this.visit(tree);
   }
 }
 const main = () => {
-  const lexer = new Lexer(`
-  PROGRAM Part10AST;
-  VAR x, y : REAL;
-    PROCEDURE Alpha(a:INTEGER);
-     VAR y : INTEGER;
+  const lexer = new Lexer(
+    `
+    PROGRAM Part10AST;
+    VAR x, y : REAL;
+      PROCEDURE Alpha(a:INTEGER);
+      VAR y : INTEGER;
+      BEGIN
+      x := y + 1 ;
+      END; 
+    
     BEGIN
-    x := y + b ;
-    END; 
-   
-  BEGIN
-  END.  {Part10AST}
-  `);
+      Alpha(1+2,7)
+    END.  {Part10AST}
+  `
+  );
 
   let parse = new Parser(lexer);
   let interpret = new Interpreter(parse);
