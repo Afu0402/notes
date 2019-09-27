@@ -768,6 +768,65 @@ class Parser {
   }
 }
 
+/**
+ * Stack
+ */
+
+class CallStack {
+  constructor() {
+    this._records  = []
+  }
+
+  push(item) {
+    this._records .push(item);
+  }
+
+  pop() {
+    this._records .pop();
+  }
+
+  peek(){
+    return this._records [this._records .length-1];
+  }
+  toString(){
+    return `${this._records.join()}`
+  }
+}
+
+ /** ActivationRecord 
+ * 保存调用帧信息；
+*/
+class ActivationRecord {
+  /**
+   * 
+   * @param {*} name 为程序和函数调用的函数名或者precedure名
+   * @param {*} type 
+   * @param {*} nestingLevel 为相应的函数或者precedure的scope level + 1;
+   */
+ constructor(name,type,nestingLevel) {
+   this.name = name;
+   this.type = type;
+   this.nestingLevel = nestingLevel;
+   this.members = {}
+ }
+
+ set(key,value) {
+   this.members[key] = value
+ }
+
+ get(key) {
+  return this.members[key];
+ }
+ toString(){
+   const lines = [`${this.nestingLevel} : ${this.type} ${this.name}`];
+   const keys = Object.keys(this.members);
+   keys.forEach(key => {
+    lines.push(`name:${key} => ${this.members[key]}`);
+   })
+   return lines.join();
+ }
+}
+
 /** Visitor */
 class NodeVisitor {
   visit(node) {
@@ -780,31 +839,6 @@ class NodeVisitor {
 /** SemanticAnalyzer
  * 遍历由Parser自动创建保存程序相关的符号，根据相关的符号检查程序的语义是否有错；
  */
-
- class ActivationRecord {
-   constructor(name,type,nestingLevel) {
-     this.name = name;
-     this.type = type;
-     this.nestingLevel = nestingLevel;
-     this.members = {}
-   }
-
-   setItem(key,value) {
-     this.members[key] = value
-   }
-
-   get(key) {
-     this.members[key];
-   }
-   toString(){
-     const lines = [`${this.nestingLevel}:${this.type.value}${this.name}`];
-     const keys = Object.keys(this.members);
-     keys.forEach(key => {
-      lines.push(`name:${key} => ${this.members[key]}`);
-     })
-     return lines.join();
-   }
- }
 
 class SemanticAnalyzer extends NodeVisitor {
   constructor() {
@@ -850,7 +884,7 @@ class SemanticAnalyzer extends NodeVisitor {
     for (let paramNode of node.actual_params) {
       this.visit(paramNode);
     }
-  } 
+  }
 
   visit_ProcedureDecl(node) {
     const proc_name = node.proc_name;
@@ -893,7 +927,6 @@ class SemanticAnalyzer extends NodeVisitor {
     if (!symbol) {
       throw new SyntaxError(`${var_name} is not declaration `);
     }
-    this.visit(node.right);
   }
   visit_Var(node) {
     const var_name = node.value;
@@ -926,19 +959,23 @@ class Interpreter extends NodeVisitor {
   constructor(parser) {
     super();
     this.parser = parser;
-    this.GLOBAL_SCOPE = {}; //临时粗存变量的地方；
+    this.callStack = new CallStack();
+  }
+
+  log(msg) {
+    console.log(msg);
   }
 
   visit_Assign(node) {
     const varName = node.left.value;
-    this.GLOBAL_SCOPE[varName] = this.visit(node.right);
+    const varValue = this.visit(node.right);
+    const ar = this.callStack.peek();
+    ar.set(varName,varValue);
   }
   visit_Var(node) {
     let varName = node.value;
-    if (!this.GLOBAL_SCOPE[varName]) {
-      throw `${verName} is not defined`;
-    }
-    return this.GLOBAL_SCOPE[varName];
+    const ar = this.callStack.peek();
+    return ar.get(varName);
   }
 
   visit_Compound(node) {
@@ -948,7 +985,12 @@ class Interpreter extends NodeVisitor {
   }
 
   visit_Program(node) {
+    const program_name = node.name;
+    const ar = new ActivationRecord(program_name,PROGRAM,1);
+    this.callStack.push(ar);
     this.visit(node.block);
+    this.log(this.callStack.toString())
+    this.callStack.pop();
   }
 
   visit_ProcedureDecl(node) {}
@@ -1005,6 +1047,7 @@ const main = () => {
     `
     PROGRAM Part10AST;
     VAR x, y : REAL;
+     
       PROCEDURE Alpha(a:INTEGER);
       VAR y : INTEGER;
       BEGIN
@@ -1012,6 +1055,8 @@ const main = () => {
       END; 
     
     BEGIN
+     y := 2;
+      x := y + 1 ;
       Alpha(1+2)
     END.  {Part10AST}
   `
@@ -1020,7 +1065,6 @@ const main = () => {
   let parse = new Parser(lexer);
   let interpret = new Interpreter(parse);
   interpret.interpret();
-  console.log(interpret.GLOBAL_SCOPE);
 };
 main();
 debugger;
