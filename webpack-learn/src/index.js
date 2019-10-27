@@ -1,20 +1,28 @@
-import _ from 'lodash';
-import print from './print'
+
+import './index.css';
+import {print} from './print';
+
+console.log(process.env.NODE_ENV)
+
 function component() {
-  console.log(
-    _.join(['Another', 'module', 'loaded!'], ' ')
-  );
   const element = document.createElement('div');
   const btn = document.createElement('button');
   const ipt = document.createElement('input');
 
-  btn.innerHTML = 'Click me and check the alert--';
-  btn.onclick = print;
-  
   element.innerHTML = 'hello webpack'
+
+  btn.innerHTML = 'Click me and check the console!';
+  btn.onclick = print;
+
   element.appendChild(btn);
-  element.appendChild(ipt);
+  element.appendChild(ipt)
   return element;
 }
 
 document.body.appendChild(component());
+if (module.hot) {
+    module.hot.accept('./print.js', function() {
+     console.log('Accepting the updated printMe module!');
+     printMe();
+    })
+ }
