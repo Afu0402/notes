@@ -7,36 +7,53 @@
     <title>Document</title>
   </head>
   <body>
-    <div id="body">
-      div
-      <button id="btn">按钮</button>
+    <div id="con">
+      button
     </div>
     <script>
-      const btn = document.getElementById("btn");
-      function useMutationObserver() {
-        var iterations = 0;
-        var node = document.createTextNode("");
-        var observer = new MutationObserver(function(){
-          console.log('数值变动:' + iterations);
-          console.log(node)
-        });
-        observer.observe(node, { characterData: true });
-
-        return function() {
-          node.data = iterations = ++iterations % 2;
-          setImmediate(function(){
-            console.log('settimeout')
-          },0)
-          new Promise((reslove) => {
-            console.log('promise')
-            reslove(2)
-          }).then(Res => {
-            console.log(Res)
+      var t = 0;
+      var con = document.getElementById("con");
+      con.onclick = function() {
+        setTimeout(function setTimeout1() {
+          con.innerHTML = 0;
+          Promise.resolve(1).then(function Promise1 () {
+                console.log('Promise1')
           })
-        };
-      }
-      btn.onclick = useMutationObserver();
+        }, 0);
+        setTimeout(function setTimeout2() {
+          con.innerHTML = 1;
+          Promise.resolve(1).then(function Promise2 () {
+                console.log('Promise2')
+          })
+        }, 0);
+        // Promise.resolve(1).then(function Promise1() {
+        //   con.innerHTML = 0;
+        // });
+      };
+      // const btn = document.getElementById("btn");
+      // function useMutationObserver() {
+      //   var iterations = 0;
+      //   var node = document.createTextNode("");
+      //   var observer = new MutationObserver(function(){
+      //     console.log('数值变动:' + iterations);
+      //     console.log(node)
+      //   });
+      //   observer.observe(node, { characterData: true });
 
+      //   return function() {
+      //     node.data = iterations = ++iterations % 2;
+      //     setImmediate(function(){
+      //       console.log('settimeout')
+      //     },0)
+      //     new Promise((reslove) => {
+      //       console.log('promise')
+      //       reslove(2)
+      //     }).then(Res => {
+      //       console.log(Res)
+      //     })
+      //   };
+      // }
+      // btn.onclick = useMutationObserver();
     </script>
   </body>
 </html>
