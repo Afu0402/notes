@@ -10,7 +10,7 @@
     <div id="con">
       button
     </div>
-    <script>
+    <script name="afu">
       var t = 0;
       var con = document.getElementById("con");
       con.onclick = function() {
@@ -30,6 +30,13 @@
         //   con.innerHTML = 0;
         // });
       };
+      con.innerHTML = 'hello world';
+      Promise.resolve(1).then(function promise1(){
+        console.log('promise1')
+      })
+      setTimeout(() =>{
+        console.log('timeout')
+      },0)
       // const btn = document.getElementById("btn");
       // function useMutationObserver() {
       //   var iterations = 0;

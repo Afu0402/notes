@@ -79,4 +79,7 @@ Javascript是一个单线程，就也是只有一个主线程。主线程有一�
 ![execution-stack.png](./image/event-loop.png)
 
 在把script直接列为一个task放入task queue。然后event loop开始去task queue里去取出script代码放入栈中依次执行。执行完后优先开始检查和执行microtask队列任务，在单次循环中会把microtask执行完并清空microtask队列。然后event loop重复再去 task queue里取出任务压入栈中执行。如此周而复始....
-
+# 为什么要区分macrotask和microtask
+个人认为有两点：
+1. 区分出microtask为了有机会可以在当轮的事件循环里添加异步处理任务。
+2. 当有一些涉及到异步修改dom的时候。放在microtask里可以更快让ui渲染最新的数据，而不用等到下一轮的事件循环。
