@@ -11,56 +11,25 @@
       button
     </div>
     <script name="afu">
-      var t = 0;
-      var con = document.getElementById("con");
-      con.onclick = function() {
-        setTimeout(function setTimeout1() {
-          con.innerHTML = 0;
-          Promise.resolve(1).then(function Promise1 () {
-                console.log('Promise1')
-          })
-        }, 0);
-        setTimeout(function setTimeout2() {
-          con.innerHTML = 1;
-          Promise.resolve(1).then(function Promise2 () {
-                console.log('Promise2')
-          })
-        }, 0);
-        // Promise.resolve(1).then(function Promise1() {
-        //   con.innerHTML = 0;
-        // });
-      };
-      con.innerHTML = 'hello world';
-      Promise.resolve(1).then(function promise1(){
-        console.log('promise1')
-      })
-      setTimeout(() =>{
-        console.log('timeout')
-      },0)
-      // const btn = document.getElementById("btn");
-      // function useMutationObserver() {
-      //   var iterations = 0;
-      //   var node = document.createTextNode("");
-      //   var observer = new MutationObserver(function(){
-      //     console.log('数值变动:' + iterations);
-      //     console.log(node)
-      //   });
-      //   observer.observe(node, { characterData: true });
+      // var detachedNodes;
 
-      //   return function() {
-      //     node.data = iterations = ++iterations % 2;
-      //     setImmediate(function(){
-      //       console.log('settimeout')
-      //     },0)
-      //     new Promise((reslove) => {
-      //       console.log('promise')
-      //       reslove(2)
-      //     }).then(Res => {
-      //       console.log(Res)
-      //     })
-      //   };
+      // function create() {
+      //   var ul = document.createElement("ul");
+      //   for (var i = 0; i < 10; i++) {
+      //     var li = document.createElement("li");
+      //     ul.appendChild(li);
+      //   }
+      //   detachedTree = ul;
       // }
-      // btn.onclick = useMutationObserver();
+
+      // document.getElementById("con").addEventListener("click", create);
+      var x = [];
+
+      function grow() {
+        x.push(new Array(1000000).join("x"));
+      }
+
+      document.getElementById("con").addEventListener("click", grow);
     </script>
   </body>
 </html>

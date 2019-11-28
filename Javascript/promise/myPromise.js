@@ -169,14 +169,8 @@ myPromise.prototype.catch = function(onRejected) {
 };
 
 let a = new myPromise((resolve, reject) => {
-  resolve(2);
-}).then((res) => {
-  return new myPromise((reslove,reject)=> {
-    reslove(res * 2)
-  })
-});
-a.then(res => {
+  resolve(x + 2);
+}).then(res => {
   console.log(res)
-})
-
-console.log("主线程执行完毕");
+}).catch(err => console.log(err))
+console.log("12")
