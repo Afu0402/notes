@@ -1,7 +1,7 @@
 
 
 let initProxy;
-import {isNative} from '../uitl';
+import {isNative} from '../share/uitl';
 
 
 const hasHandler = {

@@ -1,19 +1,11 @@
-import test from './test.js';
-test(1,4,5);
-let a = () => 1;
-let b = new  Promise((resolve) => {
-  resolve(1)
-}).then(res => {
-  console.log(res)
-  return res;
-})
-console.log([12,23].includes(23))
-class person {
-  constructor(name){
-    this.name = name;
+import Vue from './instance/index';
+import {initGlobalAPI} from './global-api/index'
+initGlobalAPI(Vue);
+let vm = new Vue({
+  el:'#div',
+  props:['name'],
+  data:{
+    name:"1"
   }
-}
-
-let c  = new person('kek')
-console.log(c)
-console.log(b)
+})
+console.log(vm)
