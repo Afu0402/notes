@@ -1,5 +1,4 @@
 import {LIFECYCLE_HOOKS,ASSET_TYPES} from '../share/constants'
-
 export function initGlobalAPI (Vue) {
   // config
   const configDef = {}

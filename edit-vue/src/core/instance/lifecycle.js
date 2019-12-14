@@ -1,7 +1,8 @@
 import {invokeWithErrorHandling} from '../share/uitl'
 export function callHook (vm, hook) {
   // #7573 disable dep collection when invoking lifecycle hooks
-  pushTarget()
+  // pushTarget()
+
   const handlers = vm.$options[hook]
   const info = `${hook} hook`
   if (handlers) {
@@ -12,7 +13,7 @@ export function callHook (vm, hook) {
   if (vm._hasHookEvent) {
     vm.$emit('hook:' + hook)
   }
-  popTarget()
+  // popTarget()
 }
 
 export function initLifecycle (vm) {

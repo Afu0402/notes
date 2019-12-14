@@ -3,6 +3,8 @@
 import {mergeOptions} from '../share/options'
 import { initLifecycle, callHook } from './lifecycle'
 import {initEvents} from './events'
+import {initRender} from './render'
+import {initState} from './state'
 let uid = 0;
 export function initMixin(Vue) {
   /**
@@ -20,6 +22,9 @@ export function initMixin(Vue) {
     vm.self = vm;
     initLifecycle(vm);
     initEvents(vm);
+    initRender(vm)// 未知
+    callHook(vm, 'beforeCreate');
+    initState(vm)
   }
 }
 
