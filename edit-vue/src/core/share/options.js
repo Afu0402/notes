@@ -161,6 +161,7 @@ function mergeData(to, from) {
     toVal = to[key];
     fromVal = from[key];
     if (!hasOwn(to, key)) {
+      console.warn('options.js set' + key)
       set(to, key, fromVal);
     } else if (
       toVal !== fromVal &&

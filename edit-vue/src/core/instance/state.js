@@ -62,36 +62,14 @@ function initProps (vm, propsOptions) {
   const keys = vm.$options._propKeys = []
   const isRoot = !vm.$parent
   // root instance props should be converted
-  // if (!isRoot) {
-  //   toggleObserving(false)
-  // }
+  if (!isRoot) {
+    toggleObserving(false)
+  }
   for (const key in propsOptions) {
     keys.push(key)
     // const value = validateProp(key, propsOptions, propsData, vm)
     const value = propsOptions[key];
     /* istanbul ignore else */
-    // if (process.env.NODE_ENV !== 'production') {
-    //   const hyphenatedKey = hyphenate(key)
-    //   if (isReservedAttribute(hyphenatedKey) ||
-    //       config.isReservedAttr(hyphenatedKey)) {
-    //     warn(
-    //       `"${hyphenatedKey}" is a reserved attribute and cannot be used as component prop.`,
-    //       vm
-    //     )
-    //   }
-    //   defineReactive(props, key, value, () => {
-    //     if (!isRoot && !isUpdatingChildComponent) {
-    //       warn(
-    //         `Avoid mutating a prop directly since the value will be ` +
-    //         `overwritten whenever the parent component re-renders. ` +
-    //         `Instead, use a data or computed property based on the prop's ` +
-    //         `value. Prop being mutated: "${key}"`,
-    //         vm
-    //       )
-    //     }
-    //   })
-    // } else {
-    // }
     defineReactive(props, key, value)
 
     // static props are already proxied on the component's prototype
@@ -111,7 +89,6 @@ export function getData (data, vm) {
     return data.call(vm, vm)
   } catch (e) {
     throw `${e}, ${vm}, data()`
-    return {}
   } finally {
     popTarget()
   }
@@ -123,11 +100,7 @@ function initData (vm) {
     : data || {}
   if (!isPlainObject(data)) {
     data = {}
-    process.env.NODE_ENV !== 'production' && warn(
-      'data functions should return an object:\n' +
-      'https://vuejs.org/v2/guide/components.html#data-Must-Be-a-Function',
-      vm
-    )
+    console.warn('data functions should return an object')
   }
   // proxy data on instance
   const keys = Object.keys(data)
@@ -136,11 +109,9 @@ function initData (vm) {
   let i = keys.length
   while (i--) {
     const key = keys[i]
-    if (process.env.NODE_ENV !== 'production') {
       if (methods && hasOwn(methods, key)) {
         throw  `Method "${key}" has already been defined as a data property.`
       }
-    }
     if (props && hasOwn(props, key)) {
       throw `The data property "${key}" is already declared as a prop. Use prop default value instead`;
     } else {
