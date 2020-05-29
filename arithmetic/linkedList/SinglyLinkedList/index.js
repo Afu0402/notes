@@ -82,7 +82,6 @@ class SinglyLinkedList {
     }
     prevNode.next = prevNode.next.next;
   } 
-
   show(){
     let currentNode = this.head.next;
     while(currentNode !== null) {
@@ -96,5 +95,4 @@ linkedList.append('b');
 linkedList.append('c');
 linkedList.append('d');
 console.log('----------------')
-console.log(linkedList.findByValue('c'))
-console.log(linkedList.findByIndex(1))
+console.log(linkedList.findByIndex(0))
