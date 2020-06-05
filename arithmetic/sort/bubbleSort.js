@@ -10,13 +10,9 @@
  */
 
 function bubbleSort (data) {
-  let num = 0;
   for(let i = 0; i < data.length; i++) {
     let flag = false; 
-    num++;
-
     for(let j = 0;j < data.length - 1; j++) {
-        num++;
       if(data[j] > data[j+1]) {
         let max = data[j];
         data[j] = data[j+1];
