@@ -1,13 +1,14 @@
 /**
  * 归并排序
- * 利用分治的思想和递归的编程方式，把需要排序的数组从中间分成2部分，然后对这2部分进行排序。再分别将排序好的2个分组再合并到一起。
+ * 利用分治的思想和递归的编程方式，把需要排序的数组不断的从中间分成2部分，然后对这2部分进行排序。再分别将排序好的2个分组再合并到一起。
+ * 把问题分解成一个个小问题，小问题解决了 大问题也就解决。
+ * mergeSort(p...r) = merge(mergeSort(A[p], A[q]), mergeSort(A[q], A[r-1]))
  */
 let sum = 0;
 function mergeSort(arr){
  return mergeSplit(arr);
 }
 function mergeSplit(arr){
-  sum++
   if(arr.length === 1) {
     return arr;
   }
